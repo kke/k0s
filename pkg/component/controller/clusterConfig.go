@@ -77,7 +77,7 @@ func (r *ClusterConfigReconciler) Init() error {
 	}
 	err := r.writeCRD()
 	if err != nil {
-		return fmt.Errorf("failed to write api-config CRD to API: %v", err)
+		return fmt.Errorf("failed to write api-config CRD to API: %w", err)
 	}
 	return nil
 }
@@ -108,7 +108,7 @@ func (r *ClusterConfigReconciler) Run(ctx context.Context) error {
 		})
 
 		if err != nil {
-			return fmt.Errorf("not able to get or create the cluster config: %v", err)
+			return fmt.Errorf("not able to get or create the cluster config: %w", err)
 		}
 	}
 
@@ -224,11 +224,11 @@ func (r *ClusterConfigReconciler) writeCRD() error {
 	for _, filename := range crd {
 		content, err := static.Asset(fmt.Sprintf("manifests/v1beta1/CustomResourceDefinition/%s", filename))
 		if err != nil {
-			return fmt.Errorf("failed to fetch crd `%s`: %v", filename, err)
+			return fmt.Errorf("failed to fetch crd `%s`: %w", filename, err)
 		}
 		err = r.saver.Save(filename, content)
 		if err != nil {
-			return fmt.Errorf("error writing api-config CRD, will NOT retry: %v", err)
+			return fmt.Errorf("error writing api-config CRD, will NOT retry: %w", err)
 		}
 	}
 	return nil

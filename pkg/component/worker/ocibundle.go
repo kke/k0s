@@ -56,7 +56,7 @@ func (a *OCIBundleReconciler) Run(ctx context.Context) error {
 		return nil
 	}, retry.Delay(time.Second*5))
 	if err != nil {
-		return fmt.Errorf("can't connect to containerd socket %s: %v", sock, err)
+		return fmt.Errorf("can't connect to containerd socket %s: %w", sock, err)
 	}
 	defer client.Close()
 
@@ -72,12 +72,12 @@ func (a *OCIBundleReconciler) Run(ctx context.Context) error {
 func (a OCIBundleReconciler) unpackBundle(ctx context.Context, client *containerd.Client, bundlePath string) error {
 	r, err := os.Open(bundlePath)
 	if err != nil {
-		return fmt.Errorf("can't open bundle file %s: %v", bundlePath, err)
+		return fmt.Errorf("can't open bundle file %s: %w", bundlePath, err)
 	}
 	defer r.Close()
 	images, err := client.Import(ctx, r)
 	if err != nil {
-		return fmt.Errorf("can't import bundle: %v", err)
+		return fmt.Errorf("can't import bundle: %w", err)
 	}
 	for _, i := range images {
 		logrus.Infof("Imported image %s", i.Name)

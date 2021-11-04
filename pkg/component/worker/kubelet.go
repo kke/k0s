@@ -139,7 +139,7 @@ func (k *Kubelet) Run(ctx context.Context) error {
 	if runtime.GOOS == "windows" {
 		node, err := getNodeName(ctx)
 		if err != nil {
-			return fmt.Errorf("can't get hostname: %v", err)
+			return fmt.Errorf("can't get hostname: %w", err)
 		}
 		kubeletConfigData.CgroupsPerQOS = false
 		kubeletConfigData.ResolvConf = ""
@@ -258,7 +258,7 @@ func getNodeName(ctx context.Context) (string, error) {
 	defer resp.Body.Close()
 	h, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", fmt.Errorf("can't read aws hostname: %v", err)
+		return "", fmt.Errorf("can't read aws hostname: %w", err)
 	}
 	return string(h), nil
 }

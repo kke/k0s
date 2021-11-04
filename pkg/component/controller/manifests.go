@@ -36,7 +36,7 @@ type FsManifestsSaver struct {
 func (f FsManifestsSaver) Save(dst string, content []byte) error {
 	target := filepath.Join(f.dir, dst)
 	if err := os.WriteFile(target, content, constant.ManifestsDirMode); err != nil {
-		return fmt.Errorf("can't write manifest %s: %v", target, err)
+		return fmt.Errorf("can't write manifest %s: %w", target, err)
 	}
 	logrus.WithField("component", "manifest-saver").Debugf("succesfully wrote %s", target)
 	return nil

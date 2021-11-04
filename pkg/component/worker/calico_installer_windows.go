@@ -33,15 +33,15 @@ func (c CalicoInstaller) Init() error {
 			logrus.Warn("CalicoWindows already set up")
 			return nil
 		}
-		return fmt.Errorf("can't create CalicoWindows dir: %v", err)
+		return fmt.Errorf("can't create CalicoWindows dir: %w", err)
 	}
 
 	if err := os.WriteFile(path, []byte(installCalicoPowershell), 777); err != nil {
-		return fmt.Errorf("can't unpack calico installer: %v", err)
+		return fmt.Errorf("can't unpack calico installer: %w", err)
 	}
 
 	if err := c.SaveKubeConfig("C:\\calico-kube-config"); err != nil {
-		return fmt.Errorf("can't get calico-kube-config: %v", err)
+		return fmt.Errorf("can't get calico-kube-config: %w", err)
 	}
 
 	return nil
@@ -50,15 +50,15 @@ func (c CalicoInstaller) Init() error {
 func (c CalicoInstaller) SaveKubeConfig(path string) error {
 	tokenBytes, err := token.DecodeJoinToken(c.Token)
 	if err != nil {
-		return fmt.Errorf("failed to decode token: %v", err)
+		return fmt.Errorf("failed to decode token: %w", err)
 	}
 	clientConfig, err := clientcmd.NewClientConfigFromBytes(tokenBytes)
 	if err != nil {
-		return fmt.Errorf("failed to create api client config: %v", err)
+		return fmt.Errorf("failed to create api client config: %w", err)
 	}
 	config, err := clientConfig.ClientConfig()
 	if err != nil {
-		return fmt.Errorf("failed to create api client config: %v", err)
+		return fmt.Errorf("failed to create api client config: %w", err)
 	}
 
 	ca := x509.NewCertPool()
@@ -72,12 +72,12 @@ func (c CalicoInstaller) SaveKubeConfig(path string) error {
 
 	req, err := http.NewRequest(http.MethodGet, c.APIAddress+"/v1beta1/calico/kubeconfig", nil)
 	if err != nil {
-		return fmt.Errorf("can't create http request: %v", err)
+		return fmt.Errorf("can't create http request: %w", err)
 	}
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", config.BearerToken))
 	resp, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("can't download kubelet config for calico: %v", err)
+		return fmt.Errorf("can't download kubelet config for calico: %w", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
@@ -85,10 +85,10 @@ func (c CalicoInstaller) SaveKubeConfig(path string) error {
 	}
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("can't read response body: %v", err)
+		return fmt.Errorf("can't read response body: %w", err)
 	}
 	if err := os.WriteFile(path, b, 0700); err != nil {
-		return fmt.Errorf("can't save kubeconfig for calico: %v", err)
+		return fmt.Errorf("can't save kubeconfig for calico: %w", err)
 	}
 	posh := NewPowershell()
 	return posh.execute(fmt.Sprintf("C:\\bootstrap.ps1 -ServiceCidr \"%s\" -DNSServerIPs \"%s\"", c.CIDRRange, c.ClusterDNS))

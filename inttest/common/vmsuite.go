@@ -174,7 +174,7 @@ func (s *VMSuite) GetJoinToken(role string) (string, error) {
 	tokenCmd := fmt.Sprintf("sudo -h 127.0.0.1 k0s token create --role=%s", role)
 	token, err := ssh.ExecWithOutput(tokenCmd)
 	if err != nil {
-		return "", fmt.Errorf("can't get join token: %v", err)
+		return "", fmt.Errorf("can't get join token: %w", err)
 	}
 	outputParts := strings.Split(token, "\n")
 	// in case of no k0s.conf given, there might be warnings on the first few lines

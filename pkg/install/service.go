@@ -102,7 +102,7 @@ func EnsureService(args []string) error {
 	logrus.Info("Installing k0s service")
 	err = s.Install()
 	if err != nil {
-		return fmt.Errorf("failed to install service: %v", err)
+		return fmt.Errorf("failed to install service: %w", err)
 	}
 	return nil
 }

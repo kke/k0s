@@ -176,7 +176,7 @@ func ConfigFromFile(filename string, dataDir string) (*ClusterConfig, error) {
 func ConfigFromStdin(dataDir string) (*ClusterConfig, error) {
 	input, err := io.ReadAll(os.Stdin)
 	if err != nil {
-		return nil, fmt.Errorf("can't read configration from stdin: %v", err)
+		return nil, fmt.Errorf("can't read configration from stdin: %w", err)
 	}
 	return ConfigFromString(string(input), dataDir)
 }

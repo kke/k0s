@@ -91,7 +91,7 @@ func (a *CSRApprover) Init() error {
 	var err error
 	a.clientset, err = a.KubeClientFactory.GetClient()
 	if err != nil {
-		return fmt.Errorf("can't create kubernetes rest client for CSR check: %v", err)
+		return fmt.Errorf("can't create kubernetes rest client for CSR check: %w", err)
 	}
 
 	return nil
@@ -133,7 +133,7 @@ func (a *CSRApprover) approveCSR(ctx context.Context) error {
 	csrs, err := a.clientset.CertificatesV1().CertificateSigningRequests().List(ctx, opts)
 	if err != nil {
 		a.L.Errorf("can't fetch CSRs: %v", err)
-		return fmt.Errorf("can't fetch CSRs: %v", err)
+		return fmt.Errorf("can't fetch CSRs: %w", err)
 	}
 
 	for _, csr := range csrs.Items {
@@ -145,7 +145,7 @@ func (a *CSRApprover) approveCSR(ctx context.Context) error {
 		x509cr, err := parseCSR(&csr)
 		if err != nil {
 			a.L.Errorf("unable to parse csr %q: %v", csr.Name, err)
-			return fmt.Errorf("unable to parse csr %q: %v", csr.Name, err)
+			return fmt.Errorf("unable to parse csr %q: %w", csr.Name, err)
 		}
 
 		for _, recognizer := range a.recognizers() {
@@ -165,7 +165,7 @@ func (a *CSRApprover) approveCSR(ctx context.Context) error {
 				_, err = a.clientset.CertificatesV1().CertificateSigningRequests().UpdateApproval(ctx, csr.Name, &csr, metav1.UpdateOptions{})
 				if err != nil {
 					a.L.Errorf("error updating approval for csr: %v", err)
-					return fmt.Errorf("error updating approval for csr: %v", err)
+					return fmt.Errorf("error updating approval for csr: %w", err)
 				}
 			} else {
 				return fmt.Errorf("failed to perform SubjectAccessReview")

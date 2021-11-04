@@ -49,7 +49,7 @@ func etcdLeaveCmd() *cobra.Command {
 			peerURL := fmt.Sprintf("https://%s:2380", etcdPeerAddress)
 			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir)
 			if err != nil {
-				return fmt.Errorf("can't connect to the etcd: %v", err)
+				return fmt.Errorf("can't connect to the etcd: %w", err)
 			}
 
 			peerID, err := etcdClient.GetPeerIDByAddress(ctx, peerURL)

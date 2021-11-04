@@ -26,12 +26,12 @@ func (k KubeProxy) Init() error {
 func (k KubeProxy) Run(ctx context.Context) error {
 	node, err := getNodeName(ctx)
 	if err != nil {
-		return fmt.Errorf("can't get hostname: %v", err)
+		return fmt.Errorf("can't get hostname: %w", err)
 	}
 	fmt.Println(31)
 	sourceVip, err := getSourceVip()
 	if err != nil {
-		return fmt.Errorf("can't get source vip: %v", err)
+		return fmt.Errorf("can't get source vip: %w", err)
 	}
 	cmd := k.K0sVars.BinDir + "\\kube-proxy.exe"
 	args := []string{

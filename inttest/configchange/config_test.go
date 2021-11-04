@@ -193,11 +193,11 @@ func (s *ConfigSuite) getConfigClient() (cfgClient.ClusterConfigInterface, error
 
 	config, err := clientcmd.BuildConfigFromFlags("", f.Name())
 	if err != nil {
-		return nil, fmt.Errorf("can't read kubeconfig: %v", err)
+		return nil, fmt.Errorf("can't read kubeconfig: %w", err)
 	}
 	c, err := cfgClient.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("can't create kubernetes typed client for cluster config: %v", err)
+		return nil, fmt.Errorf("can't create kubernetes typed client for cluster config: %w", err)
 	}
 	return c.ClusterConfigs(constant.ClusterConfigNamespace), nil
 }

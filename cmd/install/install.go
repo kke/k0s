@@ -61,12 +61,12 @@ func (c *CmdOpts) setup(role string, args []string) error {
 		}
 		c.ClusterConfig = cfg
 		if err := install.CreateControllerUsers(c.ClusterConfig, c.K0sVars); err != nil {
-			return fmt.Errorf("failed to create controller users: %v", err)
+			return fmt.Errorf("failed to create controller users: %w", err)
 		}
 	}
 	err := install.EnsureService(args)
 	if err != nil {
-		return fmt.Errorf("failed to install k0s service: %v", err)
+		return fmt.Errorf("failed to install k0s service: %w", err)
 	}
 	return nil
 }

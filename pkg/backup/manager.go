@@ -53,18 +53,18 @@ func (bm *Manager) RunBackup(cfgPath string, clusterSpec *v1beta1.ClusterSpec, v
 		logrus.Info("Backup step: ", step.Name())
 		result, err := step.Backup()
 		if err != nil {
-			return fmt.Errorf("failed to create backup on step `%s`: %v", step.Name(), err)
+			return fmt.Errorf("failed to create backup on step `%s`: %w", step.Name(), err)
 		}
 		assets = append(assets, result.filesForBackup...)
 	}
 	backupFileName := fmt.Sprintf("k0s_backup_%s.tar.gz", timeStamp())
 	if err := bm.save(backupFileName, assets); err != nil {
-		return fmt.Errorf("failed to create archive `%s`: %v", backupFileName, err)
+		return fmt.Errorf("failed to create archive `%s`: %w", backupFileName, err)
 	}
 	srcBackupFile := filepath.Join(bm.tmpDir, backupFileName)
 	destBackupFile := filepath.Join(savePathDir, backupFileName)
 	if err := file.Copy(srcBackupFile, destBackupFile); err != nil {
-		return fmt.Errorf("failed to rename temporary archive: %v", err)
+		return fmt.Errorf("failed to rename temporary archive: %w", err)
 	}
 	logrus.Infof("archive %s created successfully", destBackupFile)
 	return nil
@@ -108,7 +108,7 @@ func (bm Manager) save(backupFileName string, assets []string) error {
 	logrus.Debugf("creating temporary archive file: %v", archiveFile)
 	out, err := os.Create(archiveFile)
 	if err != nil {
-		return fmt.Errorf("error creating archive file: %v", err)
+		return fmt.Errorf("error creating archive file: %w", err)
 	}
 	defer out.Close()
 	// Create the archive and write the output to the "out" Writer
@@ -120,7 +120,7 @@ func (bm Manager) save(backupFileName string, assets []string) error {
 	destinationFile := filepath.Join(bm.tmpDir, backupFileName)
 	err = file.Copy(archiveFile, destinationFile)
 	if err != nil {
-		return fmt.Errorf("failed to copy archive file from temporary directory: %v", err)
+		return fmt.Errorf("failed to copy archive file from temporary directory: %w", err)
 	}
 	return nil
 }
@@ -128,12 +128,12 @@ func (bm Manager) save(backupFileName string, assets []string) error {
 // RunRestore restores cluster
 func (bm *Manager) RunRestore(archivePath string, k0sVars constant.CfgVars, restoredConfigPath string) error {
 	if err := archive.Extract(archivePath, bm.tmpDir); err != nil {
-		return fmt.Errorf("failed to unpack backup archive `%s`: %v", archivePath, err)
+		return fmt.Errorf("failed to unpack backup archive `%s`: %w", archivePath, err)
 	}
 	defer os.RemoveAll(bm.tmpDir)
 	cfg, err := bm.getConfigForRestore(k0sVars)
 	if err != nil {
-		return fmt.Errorf("failed to parse backed-up configuration file, check the backup archive: %v", err)
+		return fmt.Errorf("failed to parse backed-up configuration file, check the backup archive: %w", err)
 	}
 	bm.discoverSteps(fmt.Sprintf("%s/k0s.yaml", bm.tmpDir), cfg.Spec, k0sVars, "restore", restoredConfigPath)
 	logrus.Info("Starting restore")
@@ -141,7 +141,7 @@ func (bm *Manager) RunRestore(archivePath string, k0sVars constant.CfgVars, rest
 	for _, step := range bm.steps {
 		logrus.Info("Restore step: ", step.Name())
 		if err := step.Restore(bm.tmpDir, bm.dataDir); err != nil {
-			return fmt.Errorf("failed to restore on step `%s`: %v", step.Name(), err)
+			return fmt.Errorf("failed to restore on step `%s`: %w", step.Name(), err)
 		}
 	}
 	return nil
@@ -166,7 +166,7 @@ func (bm Manager) getConfigForRestore(k0sVars constant.CfgVars) (*v1beta1.Cluste
 func NewBackupManager() (*Manager, error) {
 	tmpDir, err := os.MkdirTemp("", "k0s-backup")
 	if err != nil {
-		return nil, fmt.Errorf("failed to create temporary directory: %v", err)
+		return nil, fmt.Errorf("failed to create temporary directory: %w", err)
 	}
 
 	bm := &Manager{

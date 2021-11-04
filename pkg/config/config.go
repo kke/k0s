@@ -84,11 +84,11 @@ func GetFullConfig(cfgPath string, k0sVars constant.CfgVars) (clusterConfig *v1b
 func configRequest(kubeConfig string) (clusterConfig *v1beta1.ClusterConfig, err error) {
 	config, err := clientcmd.BuildConfigFromFlags("", kubeConfig)
 	if err != nil {
-		return nil, fmt.Errorf("can't read kubeconfig: %v", err)
+		return nil, fmt.Errorf("can't read kubeconfig: %w", err)
 	}
 	c, err := cfgClient.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("can't create kubernetes typed client for cluster config: %v", err)
+		return nil, fmt.Errorf("can't create kubernetes typed client for cluster config: %w", err)
 	}
 
 	clusterConfigs := c.K0sV1beta1().ClusterConfigs(constant.ClusterConfigNamespace)
@@ -97,7 +97,7 @@ func configRequest(kubeConfig string) (clusterConfig *v1beta1.ClusterConfig, err
 
 	cfg, err := clusterConfigs.Get(ctxWithTimeout, "k0s", getOpts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch cluster-config from API: %v", err)
+		return nil, fmt.Errorf("failed to fetch cluster-config from API: %w", err)
 	}
 	return cfg, nil
 }

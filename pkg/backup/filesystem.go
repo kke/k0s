@@ -30,7 +30,7 @@ func (d FileSystemStep) Backup() (StepResult, error) {
 		return StepResult{}, nil
 	}
 	if err != nil {
-		return StepResult{}, fmt.Errorf("can't stat path `%s`: %v", d.path, err)
+		return StepResult{}, fmt.Errorf("can't stat path `%s`: %w", d.path, err)
 	}
 	if s.IsDir() {
 		return d.dir()

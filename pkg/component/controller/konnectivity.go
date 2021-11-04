@@ -73,12 +73,12 @@ func (k *Konnectivity) Init() error {
 	}
 	err = dir.Init(k.K0sVars.KonnectivitySocketDir, 0755)
 	if err != nil {
-		return fmt.Errorf("failed to initialize directory %s: %v", k.K0sVars.KonnectivitySocketDir, err)
+		return fmt.Errorf("failed to initialize directory %s: %w", k.K0sVars.KonnectivitySocketDir, err)
 	}
 
 	err = os.Chown(k.K0sVars.KonnectivitySocketDir, k.uid, -1)
 	if err != nil && os.Geteuid() == 0 {
-		return fmt.Errorf("failed to chown %s: %v", k.K0sVars.KonnectivitySocketDir, err)
+		return fmt.Errorf("failed to chown %s: %w", k.K0sVars.KonnectivitySocketDir, err)
 	}
 
 	k.log = logrus.WithFields(logrus.Fields{"component": "konnectivity"})
@@ -231,7 +231,7 @@ func (k *Konnectivity) writeKonnectivityAgent() error {
 	}
 	err = tw.Write()
 	if err != nil {
-		return fmt.Errorf("failed to write konnectivity agent manifest: %v", err)
+		return fmt.Errorf("failed to write konnectivity agent manifest: %w", err)
 	}
 	k.previousConfig = cfg
 	return nil

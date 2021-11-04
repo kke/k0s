@@ -94,11 +94,11 @@ func (k *KubeletConfig) Reconcile(_ context.Context, clusterSpec *v1beta1.Cluste
 
 	manifest, err := k.createProfiles(clusterSpec)
 	if err != nil {
-		return fmt.Errorf("failed to build final manifest: %v", err)
+		return fmt.Errorf("failed to build final manifest: %w", err)
 	}
 
 	if err := k.save(manifest.Bytes()); err != nil {
-		return fmt.Errorf("can't write manifest with config maps: %v", err)
+		return fmt.Errorf("can't write manifest with config maps: %w", err)
 	}
 	k.previousProfiles = clusterSpec.Spec.WorkerProfiles
 
@@ -123,7 +123,7 @@ func (k *KubeletConfig) defaultProfilesExist() (bool, error) {
 func (k *KubeletConfig) createProfiles(clusterSpec *v1beta1.ClusterConfig) (*bytes.Buffer, error) {
 	dnsAddress, err := clusterSpec.Spec.Network.DNSAddress()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get DNS address for kubelet config: %v", err)
+		return nil, fmt.Errorf("failed to get DNS address for kubelet config: %w", err)
 	}
 	manifest := bytes.NewBuffer([]byte{})
 	defaultProfile := getDefaultProfile(dnsAddress, clusterSpec.Spec.Network.DualStack.Enabled)
@@ -134,10 +134,10 @@ func (k *KubeletConfig) createProfiles(clusterSpec *v1beta1.ClusterConfig) (*byt
 	winDefaultProfile["cgroupsPerQOS"] = false
 
 	if err := k.writeConfigMapWithProfile(manifest, "default", defaultProfile); err != nil {
-		return nil, fmt.Errorf("can't write manifest for default profile config map: %v", err)
+		return nil, fmt.Errorf("can't write manifest for default profile config map: %w", err)
 	}
 	if err := k.writeConfigMapWithProfile(manifest, "default-windows", winDefaultProfile); err != nil {
-		return nil, fmt.Errorf("can't write manifest for default profile config map: %v", err)
+		return nil, fmt.Errorf("can't write manifest for default profile config map: %w", err)
 	}
 	configMapNames := []string{
 		formatProfileName("default"),
@@ -149,22 +149,22 @@ func (k *KubeletConfig) createProfiles(clusterSpec *v1beta1.ClusterConfig) (*byt
 		var workerValues unstructuredYamlObject
 		err := json.Unmarshal(profile.Config, &workerValues)
 		if err != nil {
-			return nil, fmt.Errorf("failed to decode worker profile values: %v", err)
+			return nil, fmt.Errorf("failed to decode worker profile values: %w", err)
 		}
 		merged, err := mergeProfiles(&profileConfig, workerValues)
 		if err != nil {
-			return nil, fmt.Errorf("can't merge profile `%s` with default profile: %v", profile.Name, err)
+			return nil, fmt.Errorf("can't merge profile `%s` with default profile: %w", profile.Name, err)
 		}
 
 		if err := k.writeConfigMapWithProfile(manifest,
 			profile.Name,
 			merged); err != nil {
-			return nil, fmt.Errorf("can't write manifest for profile config map: %v", err)
+			return nil, fmt.Errorf("can't write manifest for profile config map: %w", err)
 		}
 		configMapNames = append(configMapNames, formatProfileName(profile.Name))
 	}
 	if err := k.writeRbacRoleBindings(manifest, configMapNames); err != nil {
-		return nil, fmt.Errorf("can't write manifest for rbac bindings: %v", err)
+		return nil, fmt.Errorf("can't write manifest for rbac bindings: %w", err)
 	}
 	return manifest, nil
 }
@@ -178,7 +178,7 @@ func (k *KubeletConfig) save(data []byte) error {
 
 	filePath := filepath.Join(kubeletDir, "kubelet-config.yaml")
 	if err := os.WriteFile(filePath, data, constant.CertMode); err != nil {
-		return fmt.Errorf("can't write kubelet configuration config map: %v", err)
+		return fmt.Errorf("can't write kubelet configuration config map: %w", err)
 	}
 	return nil
 }

@@ -122,11 +122,11 @@ func (c *Calico) dumpCRDs() error {
 			Data:     emptyStruct,
 		}
 		if err := tw.WriteToBuffer(output); err != nil {
-			return fmt.Errorf("failed to write calico crd manifests %s: %v", manifestName, err)
+			return fmt.Errorf("failed to write calico crd manifests %s: %w", manifestName, err)
 		}
 
 		if err := c.crdSaver.Save(manifestName, output.Bytes()); err != nil {
-			return fmt.Errorf("failed to save calico crd manifest %s: %v", manifestName, err)
+			return fmt.Errorf("failed to save calico crd manifest %s: %w", manifestName, err)
 		}
 	}
 

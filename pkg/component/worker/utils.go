@@ -52,7 +52,7 @@ func LoadKubeletConfigClient(k0svars constant.CfgVars) (*KubeletConfigClient, er
 
 	kubeletConfigClient, err := NewKubeletConfigClient(clientConfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to start kubelet config client: %v", err)
+		return nil, fmt.Errorf("failed to start kubelet config client: %w", err)
 	}
 	return kubeletConfigClient, nil
 }

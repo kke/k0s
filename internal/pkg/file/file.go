@@ -82,12 +82,12 @@ func Copy(src, dst string) error {
 
 	input, err := os.ReadFile(src)
 	if err != nil {
-		return fmt.Errorf("error reading source file (%v): %v", src, err)
+		return fmt.Errorf("error reading source file (%v): %w", src, err)
 	}
 
 	err = os.WriteFile(dst, input, sourceFileStat.Mode())
 	if err != nil {
-		return fmt.Errorf("error writing destination file (%v): %v", dst, err)
+		return fmt.Errorf("error writing destination file (%v): %w", dst, err)
 	}
 	return nil
 }
@@ -95,12 +95,12 @@ func Copy(src, dst string) error {
 func WriteTmpFile(data string, prefix string) (path string, err error) {
 	tmpFile, err := ioutil.TempFile(os.TempDir(), fmt.Sprintf("%v-", prefix))
 	if err != nil {
-		return "", fmt.Errorf("cannot create temporary file: %v", err)
+		return "", fmt.Errorf("cannot create temporary file: %w", err)
 	}
 
 	text := []byte(data)
 	if _, err = tmpFile.Write(text); err != nil {
-		return "", fmt.Errorf("failed to write to temporary file: %v", err)
+		return "", fmt.Errorf("failed to write to temporary file: %w", err)
 	}
 
 	return tmpFile.Name(), nil

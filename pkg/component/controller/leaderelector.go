@@ -65,7 +65,7 @@ func (l *leaderElector) Init() error {
 func (l *leaderElector) Run(_ context.Context) error {
 	client, err := l.kubeClientFactory.GetClient()
 	if err != nil {
-		return fmt.Errorf("can't create kubernetes rest client for lease pool: %v", err)
+		return fmt.Errorf("can't create kubernetes rest client for lease pool: %w", err)
 	}
 	leasePool, err := leaderelection.NewLeasePool(client, "k0s-endpoint-reconciler", leaderelection.WithLogger(l.L))
 	if err != nil {

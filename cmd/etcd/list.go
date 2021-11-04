@@ -35,11 +35,11 @@ func etcdListCmd() *cobra.Command {
 			ctx := context.Background()
 			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir)
 			if err != nil {
-				return fmt.Errorf("can't list etcd cluster members: %v", err)
+				return fmt.Errorf("can't list etcd cluster members: %w", err)
 			}
 			members, err := etcdClient.ListMembers(ctx)
 			if err != nil {
-				return fmt.Errorf("can't list etcd cluster members: %v", err)
+				return fmt.Errorf("can't list etcd cluster members: %w", err)
 			}
 			l := logrus.New()
 			l.SetFormatter(&logrus.JSONFormatter{})

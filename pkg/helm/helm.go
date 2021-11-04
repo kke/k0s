@@ -65,17 +65,17 @@ func (hc *Commands) getActionCfg(namespace string) (*action.Configuration, error
 func (hc *Commands) AddRepository(repoCfg v1beta1.Repository) error {
 	err := dir.Init(filepath.Dir(hc.repoFile), constant.DataDirMode)
 	if err != nil && !os.IsExist(err) {
-		return fmt.Errorf("can't add repository to %s: %v", hc.repoFile, err)
+		return fmt.Errorf("can't add repository to %s: %w", hc.repoFile, err)
 	}
 
 	b, err := os.ReadFile(hc.repoFile)
 	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("can't add repository to %s: %v", hc.repoFile, err)
+		return fmt.Errorf("can't add repository to %s: %w", hc.repoFile, err)
 	}
 
 	var f repo.File
 	if err := yaml.Unmarshal(b, &f); err != nil {
-		return fmt.Errorf("can't add repository to %s: %v", hc.repoFile, err)
+		return fmt.Errorf("can't add repository to %s: %w", hc.repoFile, err)
 	}
 
 	c := repo.Entry{
@@ -91,16 +91,16 @@ func (hc *Commands) AddRepository(repoCfg v1beta1.Repository) error {
 
 	r, err := repo.NewChartRepository(&c, getters)
 	if err != nil {
-		return fmt.Errorf("can't add repository to %s: %v", hc.repoFile, err)
+		return fmt.Errorf("can't add repository to %s: %w", hc.repoFile, err)
 	}
 	r.CachePath = hc.helmCacheDir
 
 	if _, err := r.DownloadIndexFile(); err != nil {
-		return fmt.Errorf("can't add repository: %q is not a valid chart repository or cannot be reached: %v", "repo", err)
+		return fmt.Errorf("can't add repository: %q is not a valid chart repository or cannot be reached: %w", "repo", err)
 	}
 	f.Update(&c)
 	if err := f.WriteFile(hc.repoFile, 0644); err != nil {
-		return fmt.Errorf("can't add repository to %s: %v", hc.repoFile, err)
+		return fmt.Errorf("can't add repository to %s: %w", hc.repoFile, err)
 	}
 
 	return nil
@@ -133,7 +133,7 @@ func (hc *Commands) locateChart(name string, version string) (string, error) {
 	if _, err := os.Stat(name); err == nil {
 		abs, err := filepath.Abs(name)
 		if err != nil {
-			return abs, fmt.Errorf("can't locate chart `%s-%s`: %v", name, version, err)
+			return abs, fmt.Errorf("can't locate chart `%s-%s`: %w", name, version, err)
 		}
 		return abs, nil
 	}
@@ -165,18 +165,18 @@ func (hc *Commands) locateChart(name string, version string) (string, error) {
 	//}
 
 	if err := dir.Init(hc.helmCacheDir, constant.DataDirMode); err != nil {
-		return "", fmt.Errorf("can't locate chart `%s-%s`: %v", name, version, err)
+		return "", fmt.Errorf("can't locate chart `%s-%s`: %w", name, version, err)
 	}
 
 	filename, _, err := dl.DownloadTo(name, version, hc.helmCacheDir)
 	if err == nil {
 		lname, err := filepath.Abs(filename)
 		if err != nil {
-			return filename, fmt.Errorf("can't locate chart `%s-%s`: %v", name, version, err)
+			return filename, fmt.Errorf("can't locate chart `%s-%s`: %w", name, version, err)
 		}
 		return lname, nil
 	} else if true {
-		return filename, fmt.Errorf("can't locate chart `%s-%s`: %v", name, version, err)
+		return filename, fmt.Errorf("can't locate chart `%s-%s`: %w", name, version, err)
 	}
 
 	atVersion := ""
@@ -196,7 +196,7 @@ func (hc *Commands) isInstallable(chart *chart.Chart) bool {
 func (hc *Commands) InstallChart(chartName string, version string, namespace string, values map[string]interface{}) (*release.Release, error) {
 	cfg, err := hc.getActionCfg(namespace)
 	if err != nil {
-		return nil, fmt.Errorf("can't create action configuration: %v", err)
+		return nil, fmt.Errorf("can't create action configuration: %w", err)
 	}
 	install := action.NewInstall(cfg)
 	install.CreateNamespace = true
@@ -214,7 +214,7 @@ func (hc *Commands) InstallChart(chartName string, version string, namespace str
 	}
 	loadedChart, err := loader.Load(chartDir)
 	if err != nil {
-		return nil, fmt.Errorf("can't load loadedChart `%s`: %v", chartDir, err)
+		return nil, fmt.Errorf("can't load loadedChart `%s`: %w", chartDir, err)
 	}
 	if !hc.isInstallable(loadedChart) {
 		return nil, fmt.Errorf("loadedChart with type `%s` is not installable", loadedChart.Metadata.Type)
@@ -226,12 +226,12 @@ func (hc *Commands) InstallChart(chartName string, version string, namespace str
 
 	loadedChart, err = loader.Load(chartDir)
 	if err != nil {
-		return nil, fmt.Errorf("can't reload loadedChart `%s`: %v", chartDir, err)
+		return nil, fmt.Errorf("can't reload loadedChart `%s`: %w", chartDir, err)
 	}
 
 	chartRelease, err := install.Run(loadedChart, values)
 	if err != nil {
-		return nil, fmt.Errorf("can't install loadedChart `%s`: %v", loadedChart.Name(), err)
+		return nil, fmt.Errorf("can't install loadedChart `%s`: %w", loadedChart.Name(), err)
 	}
 	return chartRelease, nil
 }
@@ -239,7 +239,7 @@ func (hc *Commands) InstallChart(chartName string, version string, namespace str
 func (hc *Commands) UpgradeChart(chartName string, version string, releaseName string, namespace string, values map[string]interface{}) (*release.Release, error) {
 	cfg, err := hc.getActionCfg(namespace)
 	if err != nil {
-		return nil, fmt.Errorf("can't create action configuration: %v", err)
+		return nil, fmt.Errorf("can't create action configuration: %w", err)
 	}
 	upgrade := action.NewUpgrade(cfg)
 	upgrade.Namespace = namespace
@@ -250,7 +250,7 @@ func (hc *Commands) UpgradeChart(chartName string, version string, releaseName s
 	}
 	loadedChart, err := loader.Load(chartDir)
 	if err != nil {
-		return nil, fmt.Errorf("can't load loadedChart `%s`: %v", chartDir, err)
+		return nil, fmt.Errorf("can't load loadedChart `%s`: %w", chartDir, err)
 	}
 	if !hc.isInstallable(loadedChart) {
 		return nil, fmt.Errorf("loadedChart with type `%s` is not installable", loadedChart.Metadata.Type)
@@ -262,12 +262,12 @@ func (hc *Commands) UpgradeChart(chartName string, version string, releaseName s
 
 	loadedChart, err = loader.Load(chartDir)
 	if err != nil {
-		return nil, fmt.Errorf("can't reload loadedChart `%s`: %v", chartDir, err)
+		return nil, fmt.Errorf("can't reload loadedChart `%s`: %w", chartDir, err)
 	}
 
 	chartRelease, err := upgrade.Run(releaseName, loadedChart, values)
 	if err != nil {
-		return nil, fmt.Errorf("can't upgrade loadedChart `%s`: %v", loadedChart.Metadata.Name, err)
+		return nil, fmt.Errorf("can't upgrade loadedChart `%s`: %w", loadedChart.Metadata.Name, err)
 	}
 
 	return chartRelease, nil
@@ -280,7 +280,7 @@ func stringptr(s string) *string {
 func (hc *Commands) ListReleases(namespace string) ([]*release.Release, error) {
 	cfg, err := hc.getActionCfg(namespace)
 	if err != nil {
-		return nil, fmt.Errorf("can't create helmAction configuration: %v", err)
+		return nil, fmt.Errorf("can't create helmAction configuration: %w", err)
 	}
 	helmAction := action.NewList(cfg)
 	return helmAction.Run()
@@ -289,11 +289,11 @@ func (hc *Commands) ListReleases(namespace string) ([]*release.Release, error) {
 func (hc *Commands) UninstallRelease(releaseName string, namespace string) error {
 	cfg, err := hc.getActionCfg(namespace)
 	if err != nil {
-		return fmt.Errorf("can't create helmAction configuration: %v", err)
+		return fmt.Errorf("can't create helmAction configuration: %w", err)
 	}
 	helmAction := action.NewUninstall(cfg)
 	if _, err := helmAction.Run(releaseName); err != nil {
-		return fmt.Errorf("can't uninstall release `%s`: %v", releaseName, err)
+		return fmt.Errorf("can't uninstall release `%s`: %w", releaseName, err)
 	}
 	return nil
 }

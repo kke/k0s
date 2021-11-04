@@ -130,7 +130,7 @@ func (c *CmdOpts) startController(ctx context.Context) error {
 	if c.TokenArg != "" && c.needToJoin() {
 		joinClient, err = joinController(c.TokenArg, c.K0sVars.CertRootDir)
 		if err != nil {
-			return fmt.Errorf("failed to join controller: %v", err)
+			return fmt.Errorf("failed to join controller: %w", err)
 		}
 	}
 

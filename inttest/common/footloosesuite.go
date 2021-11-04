@@ -406,7 +406,7 @@ func (s *FootlooseSuite) GetJoinToken(role string, extraArgs ...string) (string,
 	defer ssh.Disconnect()
 	token, err := ssh.ExecWithOutput(fmt.Sprintf("k0s token create --role=%s %s", role, strings.Join(extraArgs, " ")))
 	if err != nil {
-		return "", fmt.Errorf("can't get join token: %v", err)
+		return "", fmt.Errorf("can't get join token: %w", err)
 	}
 	outputParts := strings.Split(token, "\n")
 	// in case of no k0s.conf given, there might be warnings on the first few lines

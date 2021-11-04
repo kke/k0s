@@ -36,7 +36,7 @@ func (c configurationStep) Backup() (StepResult, error) {
 		return StepResult{}, nil
 	}
 	if err != nil {
-		return StepResult{}, fmt.Errorf("can't backup `%s`: %v", c.path, err)
+		return StepResult{}, fmt.Errorf("can't backup `%s`: %w", c.path, err)
 	}
 	return StepResult{filesForBackup: []string{c.path}}, nil
 }

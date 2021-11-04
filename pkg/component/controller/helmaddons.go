@@ -74,13 +74,13 @@ func (h *HelmAddons) Reconcile(ctx context.Context, clusterConfig *k0sAPI.Cluste
 	// TODO Can we use the shared kube client factory to create the clientset for helm CRDs?
 	client, err := clientset.NewForConfig(h.kubeConfig)
 	if err != nil {
-		return fmt.Errorf("can't create kubernetes typed Client for helm charts: %v", err)
+		return fmt.Errorf("can't create kubernetes typed Client for helm charts: %w", err)
 	}
 
 	h.Client = client
 
 	if err := h.reconcileHelmSettings(clusterConfig); err != nil {
-		return fmt.Errorf("can't init helm: %v", err)
+		return fmt.Errorf("can't init helm: %w", err)
 	}
 
 	h.L.Info("Successfully inited helm")
@@ -96,7 +96,7 @@ func (h *HelmAddons) Reconcile(ctx context.Context, clusterConfig *k0sAPI.Cluste
 func (h *HelmAddons) reconcileHelmSettings(clusterConfig *k0sAPI.ClusterConfig) error {
 	for _, repo := range clusterConfig.Spec.Extensions.Helm.Repositories {
 		if err := h.addRepo(repo); err != nil {
-			return fmt.Errorf("can't init repository `%s`: %v", repo.URL, err)
+			return fmt.Errorf("can't init repository `%s`: %w", repo.URL, err)
 		}
 	}
 
@@ -109,10 +109,10 @@ func (h *HelmAddons) reconcileHelmSettings(clusterConfig *k0sAPI.ClusterConfig) 
 		buf := bytes.NewBuffer([]byte{})
 		if err := tw.WriteToBuffer(buf); err != nil {
 			h.L.WithError(err).Errorf("can't render helm addon crd template")
-			return fmt.Errorf("can't create addon `%s`: %v", addon.ChartName, err)
+			return fmt.Errorf("can't create addon `%s`: %w", addon.ChartName, err)
 		}
 		if err := h.saver.Save("addon_crd_manifest_"+addon.Name+".yaml", buf.Bytes()); err != nil {
-			return fmt.Errorf("can't save addon CRD manifest: %v", err)
+			return fmt.Errorf("can't save addon CRD manifest: %w", err)
 		}
 	}
 	return nil
@@ -241,7 +241,7 @@ func (h *HelmAddons) uninstall(id string) error {
 		return nil
 	}
 	if err := h.helm.UninstallRelease(releaseName, namespace); err != nil {
-		return fmt.Errorf("can't uninstall release `%s`: %v", releaseName, err)
+		return fmt.Errorf("can't uninstall release `%s`: %w", releaseName, err)
 	}
 	return nil
 }
@@ -254,7 +254,7 @@ func (h *HelmAddons) reconcile(ctx context.Context, objectID string) error {
 	name := strings.Split(objectID, "/")[1]
 	chart, err := h.Client.Charts(namespaceToWatch).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("can't reconcile chart `%s`: %v", objectID, err)
+		return fmt.Errorf("can't reconcile chart `%s`: %w", objectID, err)
 	}
 	var chartRelease *release.Release
 	if chart.Status.ReleaseName == "" {
@@ -264,7 +264,7 @@ func (h *HelmAddons) reconcile(ctx context.Context, objectID string) error {
 			chart.Spec.Namespace,
 			chart.Spec.YamlValues())
 		if err != nil {
-			return fmt.Errorf("can't reconcile installation for `%s`: %v", objectID, err)
+			return fmt.Errorf("can't reconcile installation for `%s`: %w", objectID, err)
 		}
 	} else {
 		// update
@@ -275,7 +275,7 @@ func (h *HelmAddons) reconcile(ctx context.Context, objectID string) error {
 			chart.Spec.YamlValues(),
 		)
 		if err != nil {
-			return fmt.Errorf("can't reconcile upgrade for `%s`: %v", objectID, err)
+			return fmt.Errorf("can't reconcile upgrade for `%s`: %w", objectID, err)
 		}
 	}
 
@@ -288,7 +288,7 @@ func (h *HelmAddons) reconcile(ctx context.Context, objectID string) error {
 	chart.Status.Error = ""
 	_, err = h.Client.Charts(namespaceToWatch).UpdateStatus(ctx, chart, metav1.UpdateOptions{})
 	if err != nil {
-		return fmt.Errorf("can't update status for `%s`: %v", objectID, err)
+		return fmt.Errorf("can't update status for `%s`: %w", objectID, err)
 	}
 	return nil
 }

@@ -44,11 +44,11 @@ func (d *directories) Run() error {
 
 	logrus.Debugf("deleting k0s generated data-dir (%v) and run-dir (%v)", d.Config.dataDir, d.Config.runDir)
 	if err := os.RemoveAll(d.Config.dataDir); err != nil {
-		fmtError := fmt.Errorf("failed to delete %v. err: %v", d.Config.dataDir, err)
+		fmtError := fmt.Errorf("failed to delete %v. err: %w", d.Config.dataDir, err)
 		return fmtError
 	}
 	if err := os.RemoveAll(d.Config.runDir); err != nil {
-		fmtError := fmt.Errorf("failed to delete %v. err: %v", d.Config.runDir, err)
+		fmtError := fmt.Errorf("failed to delete %v. err: %w", d.Config.runDir, err)
 		return fmtError
 	}
 

@@ -153,14 +153,14 @@ func (c *containers) stopAllContainers() error {
 				// since we're deleting the API pod itself. so we're ignoring this error
 				logrus.Debugf("ignoring container stop err: %v", err.Error())
 			} else {
-				fmtError := fmt.Errorf("failed to stop running pod %v: err: %v", pod, err)
+				fmtError := fmt.Errorf("failed to stop running pod %v: err: %w", pod, err)
 				logrus.Debug(fmtError)
 				msg = append(msg, fmtError)
 			}
 		}
 		err = c.Config.containerRuntime.RemoveContainer(pod)
 		if err != nil {
-			msg = append(msg, fmt.Errorf("failed to remove pod %v: err: %v", pod, err))
+			msg = append(msg, fmt.Errorf("failed to remove pod %v: err: %w", pod, err))
 		}
 	}
 
