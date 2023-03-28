@@ -17,18 +17,19 @@ limitations under the License.
 package config
 
 import (
+	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/spf13/cobra"
 )
 
-func NewConfigCmd() *cobra.Command {
+func NewConfigCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
 		Short: "Configuration related sub-commands",
 	}
-	cmd.AddCommand(NewCreateCmd())
-	cmd.AddCommand(NewEditCmd())
-	cmd.AddCommand(NewStatusCmd())
-	cmd.AddCommand(NewValidateCmd())
+	cmd.AddCommand(NewCreateCmd(opts))
+	cmd.AddCommand(NewEditCmd(opts))
+	cmd.AddCommand(NewStatusCmd(opts))
+	cmd.AddCommand(NewValidateCmd(opts))
 	cmd.SilenceUsage = true
 	return cmd
 }

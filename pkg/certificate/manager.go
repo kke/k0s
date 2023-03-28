@@ -60,7 +60,7 @@ type Certificate struct {
 
 // Manager is the certificate manager
 type Manager struct {
-	K0sVars constant.CfgVars
+	K0sVars *constant.CfgVars
 }
 
 // EnsureCA makes sure the given CA certs and key is created.
@@ -229,7 +229,7 @@ func isManagedByK0s(cert *certinfo.Certificate) bool {
 	return false
 }
 
-func (m *Manager) CreateKeyPair(name string, k0sVars constant.CfgVars, owner string) error {
+func (m *Manager) CreateKeyPair(name string, k0sVars *constant.CfgVars, owner string) error {
 	keyFile := filepath.Join(k0sVars.CertRootDir, fmt.Sprintf("%s.key", name))
 	pubFile := filepath.Join(k0sVars.CertRootDir, fmt.Sprintf("%s.pub", name))
 

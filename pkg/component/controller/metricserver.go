@@ -243,7 +243,7 @@ spec:
 type MetricServer struct {
 	log logrus.FieldLogger
 
-	K0sVars           constant.CfgVars
+	K0sVars           *constant.CfgVars
 	kubeClientFactory k8sutil.ClientFactoryInterface
 
 	clusterConfig *v1beta1.ClusterConfig
@@ -261,7 +261,7 @@ var _ manager.Component = (*MetricServer)(nil)
 var _ manager.Reconciler = (*MetricServer)(nil)
 
 // NewMetricServer creates new MetricServer reconciler
-func NewMetricServer(k0sVars constant.CfgVars, kubeClientFactory k8sutil.ClientFactoryInterface) *MetricServer {
+func NewMetricServer(k0sVars *constant.CfgVars, kubeClientFactory k8sutil.ClientFactoryInterface) *MetricServer {
 	return &MetricServer{
 		log: logrus.WithFields(logrus.Fields{"component": "metricServer"}),
 

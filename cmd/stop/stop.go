@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/install"
 
 	"github.com/kardianos/service"
 	"github.com/spf13/cobra"
 )
 
-func NewStopCmd() *cobra.Command {
+func NewStopCmd(opts *config.CLIOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "stop",
 		Short: "Stop the k0s service configured on this host. Must be run as root (or with sudo)",

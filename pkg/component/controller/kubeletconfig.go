@@ -51,12 +51,12 @@ type KubeletConfig struct {
 	log logrus.FieldLogger
 
 	kubeClientFactory k8sutil.ClientFactoryInterface
-	k0sVars           constant.CfgVars
+	k0sVars           *constant.CfgVars
 	previousProfiles  v1beta1.WorkerProfiles
 }
 
 // NewKubeletConfig creates new KubeletConfig reconciler
-func NewKubeletConfig(k0sVars constant.CfgVars, clientFactory k8sutil.ClientFactoryInterface) *KubeletConfig {
+func NewKubeletConfig(k0sVars *constant.CfgVars, clientFactory k8sutil.ClientFactoryInterface) *KubeletConfig {
 	return &KubeletConfig{
 		log: logrus.WithFields(logrus.Fields{"component": "kubeletconfig"}),
 

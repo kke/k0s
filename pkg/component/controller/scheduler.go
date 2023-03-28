@@ -35,7 +35,7 @@ import (
 // Scheduler implement the component interface to run kube scheduler
 type Scheduler struct {
 	gid            int
-	K0sVars        constant.CfgVars
+	K0sVars        *constant.CfgVars
 	LogLevel       string
 	SingleNode     bool
 	supervisor     *supervisor.Supervisor

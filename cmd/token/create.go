@@ -31,7 +31,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func tokenCreateCmd() *cobra.Command {
+func tokenCreateCmd(opts *config.CLIOptions) *cobra.Command {
 	var (
 		createTokenRole string
 		tokenExpiry     string
@@ -52,7 +52,6 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 			return err
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
 			expiry, err := time.ParseDuration(tokenExpiry)
 			if err != nil {
 				return err
@@ -68,7 +67,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 			}, func(err error) bool {
 				return waitCreate
 			}, func() error {
-				statusInfo, err := status.GetStatusInfo(config.StatusSocket)
+				statusInfo, err := status.GetStatusInfo(opts.StatusSocket)
 				if err != nil {
 					return fmt.Errorf("failed to get k0s status: %w", err)
 				}
@@ -81,7 +80,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 					return err
 				}
 
-				bootstrapConfig, err = token.CreateKubeletBootstrapToken(cmd.Context(), c.NodeConfig.Spec.API, c.K0sVars, createTokenRole, expiry)
+				bootstrapConfig, err = token.CreateKubeletBootstrapToken(cmd.Context(), opts.NodeConfig().Spec.API, opts.K0sVars(), createTokenRole, expiry)
 				return err
 			})
 			if err != nil {
@@ -92,7 +91,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 		},
 	}
 	// append flags
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	cmd.Flags().StringVar(&tokenExpiry, "expiry", "0s", "Expiration time of the token. Format 1.5h, 2h45m or 300ms.")
 	cmd.Flags().StringVar(&createTokenRole, "role", "worker", "Either worker or controller")
 	cmd.Flags().BoolVar(&waitCreate, "wait", false, "wait forever (default false)")

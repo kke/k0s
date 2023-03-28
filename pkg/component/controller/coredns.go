@@ -251,7 +251,7 @@ var _ manager.Reconciler = (*CoreDNS)(nil)
 
 // CoreDNS is the component implementation to manage CoreDNS
 type CoreDNS struct {
-	K0sVars    constant.CfgVars
+	K0sVars    *constant.CfgVars
 	NodeConfig *v1beta1.ClusterConfig
 
 	client                 kubernetes.Interface
@@ -271,7 +271,7 @@ type coreDNSConfig struct {
 }
 
 // NewCoreDNS creates new instance of CoreDNS component
-func NewCoreDNS(k0sVars constant.CfgVars, clientFactory k8sutil.ClientFactoryInterface, nodeConfig *v1beta1.ClusterConfig) (*CoreDNS, error) {
+func NewCoreDNS(k0sVars *constant.CfgVars, clientFactory k8sutil.ClientFactoryInterface, nodeConfig *v1beta1.ClusterConfig) (*CoreDNS, error) {
 	manifestDir := path.Join(k0sVars.ManifestsDir, "coredns")
 
 	client, err := clientFactory.GetClient()

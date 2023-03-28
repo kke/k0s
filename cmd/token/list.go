@@ -27,7 +27,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func tokenListCmd() *cobra.Command {
+func tokenListCmd(opts *config.CLIOptions) *cobra.Command {
 	var listTokenRole string
 
 	cmd := &cobra.Command{
@@ -42,8 +42,7 @@ func tokenListCmd() *cobra.Command {
 			return err
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
-			manager, err := token.NewManager(filepath.Join(c.K0sVars.AdminKubeConfigPath))
+			manager, err := token.NewManager(filepath.Join(opts.K0sVars().AdminKubeConfigPath))
 			if err != nil {
 				return err
 			}
@@ -81,6 +80,6 @@ func tokenListCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&listTokenRole, "role", "", "Either worker, controller or empty for all roles")
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

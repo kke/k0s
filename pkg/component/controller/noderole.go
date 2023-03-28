@@ -38,11 +38,11 @@ type NodeRole struct {
 	log logrus.FieldLogger
 
 	kubeClientFactory k8sutil.ClientFactoryInterface
-	k0sVars           constant.CfgVars
+	k0sVars           *constant.CfgVars
 }
 
 // NewNodeRole creates new NodeRole reconciler
-func NewNodeRole(k0sVars constant.CfgVars, clientFactory k8sutil.ClientFactoryInterface) *NodeRole {
+func NewNodeRole(k0sVars *constant.CfgVars, clientFactory k8sutil.ClientFactoryInterface) *NodeRole {
 	return &NodeRole{
 		log: logrus.WithFields(logrus.Fields{"component": "noderole"}),
 

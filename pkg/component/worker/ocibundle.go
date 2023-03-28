@@ -35,7 +35,7 @@ import (
 
 // OCIBundleReconciler tries to import OCI bundle into the running containerd instance
 type OCIBundleReconciler struct {
-	k0sVars constant.CfgVars
+	k0sVars *constant.CfgVars
 	log     *logrus.Entry
 	*prober.EventEmitter
 }
@@ -43,7 +43,7 @@ type OCIBundleReconciler struct {
 var _ manager.Component = (*OCIBundleReconciler)(nil)
 
 // NewOCIBundleReconciler builds new reconciler
-func NewOCIBundleReconciler(vars constant.CfgVars) *OCIBundleReconciler {
+func NewOCIBundleReconciler(vars *constant.CfgVars) *OCIBundleReconciler {
 	return &OCIBundleReconciler{
 		k0sVars:      vars,
 		log:          logrus.WithField("component", "OCIBundleReconciler"),

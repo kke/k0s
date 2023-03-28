@@ -44,7 +44,7 @@ import (
 // APIServer implement the component interface to run kube api
 type APIServer struct {
 	ClusterConfig             *v1beta1.ClusterConfig
-	K0sVars                   constant.CfgVars
+	K0sVars                   *constant.CfgVars
 	LogLevel                  string
 	Storage                   manager.Component
 	EnableKonnectivity        bool
@@ -242,7 +242,7 @@ func (a *APIServer) Ready() error {
 	return nil
 }
 
-func getEtcdArgs(storage *v1beta1.StorageSpec, k0sVars constant.CfgVars) ([]string, error) {
+func getEtcdArgs(storage *v1beta1.StorageSpec, k0sVars *constant.CfgVars) ([]string, error) {
 	var args []string
 
 	switch storage.Type {

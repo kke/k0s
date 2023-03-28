@@ -63,7 +63,7 @@ var getters = getter.Providers{
 }
 
 // NewCommands builds new Commands instance with default values
-func NewCommands(k0sVars constant.CfgVars) *Commands {
+func NewCommands(k0sVars *constant.CfgVars) *Commands {
 	return &Commands{
 		repoFile:     k0sVars.HelmRepositoryConfig,
 		helmCacheDir: k0sVars.HelmRepositoryCache,

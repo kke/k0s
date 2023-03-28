@@ -24,22 +24,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewStatusCmd() *cobra.Command {
+func NewStatusCmd(opts *config.CLIOptions) *cobra.Command {
 	var outputFormat string
 
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Display dynamic configuration reconciliation status",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			c := config.GetCmdOpts()
-			os.Args = []string{os.Args[0], "kubectl", "--data-dir", c.K0sVars.DataDir, "-n", "kube-system", "get", "event", "--field-selector", "involvedObject.name=k0s"}
+			os.Args = []string{os.Args[0], "kubectl", "--data-dir", opts.K0sVars().DataDir, "-n", "kube-system", "get", "event", "--field-selector", "involvedObject.name=k0s"}
 			if outputFormat != "" {
 				os.Args = append(os.Args, "-o", outputFormat)
 			}
 			return cmd.Execute()
 		},
 	}
-	cmd.PersistentFlags().AddFlagSet(config.GetKubeCtlFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetKubeCtlFlagSet(opts))
 	cmd.Flags().StringVarP(&outputFormat, "output", "o", "", "Output format. Must be one of yaml|json")
 	return cmd
 }

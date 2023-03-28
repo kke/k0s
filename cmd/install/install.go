@@ -28,14 +28,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type command config.CLIOptions
+type command struct {
+	config.CLIOptions
+}
 
 type installFlags struct {
 	force   bool
 	envVars []string
 }
 
-func NewInstallCmd() *cobra.Command {
+func NewInstallCmd(opts *config.CLIOptions) *cobra.Command {
 	var installFlags installFlags
 
 	cmd := &cobra.Command{
@@ -43,11 +45,11 @@ func NewInstallCmd() *cobra.Command {
 		Short: "Install k0s on a brand-new system. Must be run as root (or with sudo)",
 	}
 
-	cmd.AddCommand(installControllerCmd(&installFlags))
-	cmd.AddCommand(installWorkerCmd(&installFlags))
+	cmd.AddCommand(installControllerCmd(&installFlags, opts))
+	cmd.AddCommand(installWorkerCmd(&installFlags, opts))
 	cmd.PersistentFlags().BoolVar(&installFlags.force, "force", false, "force init script creation")
 	cmd.PersistentFlags().StringArrayVarP(&installFlags.envVars, "env", "e", nil, "set environment variable")
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }
 
@@ -60,7 +62,7 @@ func (c *command) setup(role string, args []string, installFlags *installFlags) 
 	}
 
 	if role == "controller" {
-		if err := install.CreateControllerUsers(c.NodeConfig, c.K0sVars); err != nil {
+		if err := install.CreateControllerUsers(c.NodeConfig(), c.K0sVars()); err != nil {
 			return fmt.Errorf("failed to create controller users: %v", err)
 		}
 	}
@@ -82,8 +84,8 @@ func (c *command) convertFileParamsToAbsolute() (err error) {
 			return err
 		}
 	}
-	if c.K0sVars.DataDir != "" {
-		c.K0sVars.DataDir, err = filepath.Abs(c.K0sVars.DataDir)
+	if c.K0sVars().DataDir != "" {
+		c.K0sVars().DataDir, err = filepath.Abs(c.K0sVars().DataDir)
 		if err != nil {
 			return err
 		}

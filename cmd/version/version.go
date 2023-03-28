@@ -22,6 +22,7 @@ import (
 	"io"
 
 	"github.com/k0sproject/k0s/pkg/build"
+	"github.com/k0sproject/k0s/pkg/config"
 
 	"github.com/spf13/cobra"
 )
@@ -31,7 +32,7 @@ var (
 	isJsn bool
 )
 
-func NewVersionCmd() *cobra.Command {
+func NewVersionCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print the k0s version",

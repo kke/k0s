@@ -47,7 +47,7 @@ type Etcd struct {
 	CertManager certificate.Manager
 	Config      *v1beta1.EtcdConfig
 	JoinClient  *token.JoinClient
-	K0sVars     constant.CfgVars
+	K0sVars     *constant.CfgVars
 	LogLevel    string
 
 	supervisor supervisor.Supervisor

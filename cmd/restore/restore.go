@@ -39,18 +39,18 @@ import (
 )
 
 type command struct {
-	config.CLIOptions
+	*config.CLIOptions
 	restoredConfigPath string
 }
 
-func NewRestoreCmd() *cobra.Command {
+func NewRestoreCmd(opts *config.CLIOptions) *cobra.Command {
 	var c command
 
 	cmd := &cobra.Command{
 		Use:   "restore filename",
 		Short: "restore k0s state from given backup archive. Use '-' as filename to read from stdin. Must be run as root (or with sudo)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c.CLIOptions = config.GetCmdOpts()
+			c.CLIOptions = opts
 			if len(args) != 1 {
 				return fmt.Errorf("path to backup archive expected")
 			}
@@ -67,7 +67,7 @@ func NewRestoreCmd() *cobra.Command {
 
 	restoredConfigPathDescription := fmt.Sprintf("Specify desired name and full path for the restored k0s.yaml file (default: %s/k0s_<archive timestamp>.yaml", cwd)
 	cmd.Flags().StringVar(&c.restoredConfigPath, "config-out", "", restoredConfigPathDescription)
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }
 
@@ -76,7 +76,7 @@ func (c *command) restore(path string, out io.Writer) error {
 		return fmt.Errorf("this command must be run as root")
 	}
 
-	k0sStatus, _ := status.GetStatusInfo(config.StatusSocket)
+	k0sStatus, _ := status.GetStatusInfo(c.CLIOptions.StatusSocket)
 	if k0sStatus != nil && k0sStatus.Pid != 0 {
 		logrus.Fatal("k0s seems to be running! k0s must be down during the restore operation.")
 	}
@@ -85,8 +85,8 @@ func (c *command) restore(path string, out io.Writer) error {
 		return fmt.Errorf("given file %s does not exist", path)
 	}
 
-	if !dir.IsDirectory(c.K0sVars.DataDir) {
-		if err := dir.Init(c.K0sVars.DataDir, constant.DataDirMode); err != nil {
+	if !dir.IsDirectory(c.CLIOptions.K0sVars().DataDir) {
+		if err := dir.Init(c.CLIOptions.K0sVars().DataDir, constant.DataDirMode); err != nil {
 			return err
 		}
 	}
@@ -98,7 +98,7 @@ func (c *command) restore(path string, out io.Writer) error {
 	if c.restoredConfigPath == "" {
 		c.restoredConfigPath = defaultConfigFileOutputPath(path)
 	}
-	return mgr.RunRestore(path, c.K0sVars, c.restoredConfigPath, out)
+	return mgr.RunRestore(path, c.CLIOptions, c.restoredConfigPath, out)
 }
 
 // set output config file name and path according to input archive Timestamps

@@ -41,7 +41,7 @@ type Certificates struct {
 	CACert      string
 	CertManager certificate.Manager
 	ClusterSpec *v1beta1.ClusterSpec
-	K0sVars     constant.CfgVars
+	K0sVars     *constant.CfgVars
 }
 
 // Init initializes the certificate component

@@ -30,9 +30,9 @@ import (
 
 const pathEnv = "PATH"
 
-func NewCtrCommand() *cobra.Command {
+func NewCtrCommand(opts *config.CLIOptions) *cobra.Command {
 	containerdCtr := app.New()
-	setDefaultValues(containerdCtr.Flags)
+	setDefaultValues(containerdCtr.Flags, opts)
 
 	cmd := &cobra.Command{
 		Use:                containerdCtr.Name,
@@ -41,7 +41,7 @@ func NewCtrCommand() *cobra.Command {
 		DisableFlagParsing: true,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			args := extractCtrCommand(os.Args)
-			newPath := fmt.Sprintf("%s%s%s", config.GetCmdOpts().K0sVars.BinDir,
+			newPath := fmt.Sprintf("%s%s%s", opts.K0sVars().BinDir,
 				string(os.PathListSeparator),
 				os.Getenv(pathEnv))
 			os.Setenv(pathEnv, newPath)
@@ -52,11 +52,11 @@ func NewCtrCommand() *cobra.Command {
 	return cmd
 }
 
-func setDefaultValues(flags []cli.Flag) {
+func setDefaultValues(flags []cli.Flag, opts *config.CLIOptions) {
 	for i, flag := range flags {
 		if f, ok := flag.(cli.StringFlag); ok {
 			if f.Name == "address, a" {
-				f.Value = path.Join(config.GetCmdOpts().K0sVars.RunDir, "containerd.sock")
+				f.Value = path.Join(opts.K0sVars().RunDir, "containerd.sock")
 				flags[i] = f
 			} else if f.Name == "namespace, n" {
 				f.Value = "k8s.io"

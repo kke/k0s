@@ -49,7 +49,7 @@ type Calico struct {
 	crdSaver   manifestsSaver
 	saver      manifestsSaver
 	prevConfig calicoConfig
-	k0sVars    constant.CfgVars
+	k0sVars    *constant.CfgVars
 }
 
 type manifestsSaver interface {
@@ -79,7 +79,7 @@ type calicoConfig struct {
 }
 
 // NewCalico creates new Calico reconciler component
-func NewCalico(k0sVars constant.CfgVars, crdSaver manifestsSaver, manifestsSaver manifestsSaver) *Calico {
+func NewCalico(k0sVars *constant.CfgVars, crdSaver manifestsSaver, manifestsSaver manifestsSaver) *Calico {
 	return &Calico{
 		log: logrus.WithFields(logrus.Fields{"component": "calico"}),
 

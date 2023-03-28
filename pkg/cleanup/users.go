@@ -33,7 +33,7 @@ func (u *users) Name() string {
 
 // Run removes all controller users that are present on the host
 func (u *users) Run() error {
-	loadingRules := config.ClientConfigLoadingRules{Nodeconfig: true, K0sVars: u.Config.k0sVars}
+	loadingRules := config.ClientConfigLoadingRules{Nodeconfig: true, Opts: u.Config.opts}
 	cfg, err := loadingRules.Load()
 	if err != nil {
 		logrus.Errorf("failed to get cluster setup: %v", err)

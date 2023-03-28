@@ -41,7 +41,7 @@ type K0sStatus struct {
 	Args                        []string
 	WorkerToAPIConnectionStatus ProbeStatus
 	ClusterConfig               *config.ClusterConfig
-	K0sVars                     constant.CfgVars
+	K0sVars                     *constant.CfgVars
 }
 
 type ProbeStatus struct {

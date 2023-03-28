@@ -47,7 +47,7 @@ import (
 )
 
 type command struct {
-	config.CLIOptions
+	opts   *config.CLIOptions
 	client kubernetes.Interface
 }
 
@@ -61,7 +61,7 @@ var allowedUsageByRole = map[string]string{
 	controllerRole: "usage-controller-join",
 }
 
-func NewAPICmd() *cobra.Command {
+func NewAPICmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "api",
 		Short: "Run the controller API",
@@ -71,24 +71,24 @@ func NewAPICmd() *cobra.Command {
 			return config.CallParentPersistentPreRun(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return (&command{CLIOptions: config.GetCmdOpts()}).start()
+			return (&command{opts: opts}).start()
 		},
 	}
 	cmd.SilenceUsage = true
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }
 
 func (c *command) start() (err error) {
 	// Single kube client for whole lifetime of the API
-	c.client, err = kubeutil.NewClientFromFile(c.K0sVars.AdminKubeConfigPath)
+	c.client, err = kubeutil.NewClientFromFile(c.opts.K0sVars().AdminKubeConfigPath)
 	if err != nil {
 		return err
 	}
 
 	prefix := "/v1beta1"
 	mux := http.NewServeMux()
-	storage := c.NodeConfig.Spec.Storage
+	storage := c.opts.NodeConfig().Spec.Storage
 
 	if storage.Type == v1beta1.EtcdStorageType && !storage.Etcd.IsExternalClusterUsed() {
 		// Only mount the etcd handler if we're running on internal etcd storage
@@ -106,7 +106,7 @@ func (c *command) start() (err error) {
 
 	srv := &http.Server{
 		Handler: mux,
-		Addr:    fmt.Sprintf(":%d", c.NodeConfig.Spec.API.K0sAPIPort),
+		Addr:    fmt.Sprintf(":%d", c.opts.NodeConfig().Spec.API.K0sAPIPort),
 		TLSConfig: &tls.Config{
 			MinVersion:   tls.VersionTLS12,
 			CipherSuites: constant.AllowedTLS12CipherSuiteIDs,
@@ -116,8 +116,8 @@ func (c *command) start() (err error) {
 	}
 
 	return srv.ListenAndServeTLS(
-		filepath.Join(c.K0sVars.CertRootDir, "k0s-api.crt"),
-		filepath.Join(c.K0sVars.CertRootDir, "k0s-api.key"),
+		filepath.Join(c.opts.K0sVars().CertRootDir, "k0s-api.crt"),
+		filepath.Join(c.opts.K0sVars().CertRootDir, "k0s-api.key"),
 	)
 }
 
@@ -137,7 +137,7 @@ func (c *command) etcdHandler() http.Handler {
 			return
 		}
 
-		etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, nil)
+		etcdClient, err := etcd.NewClient(c.opts.K0sVars().CertRootDir, c.opts.K0sVars().EtcdCertDir, nil)
 		if err != nil {
 			sendError(err, resp)
 			return
@@ -153,7 +153,7 @@ func (c *command) etcdHandler() http.Handler {
 			InitialCluster: memberList,
 		}
 
-		etcdCaCertPath, etcdCaCertKey := filepath.Join(c.K0sVars.EtcdCertDir, "ca.crt"), filepath.Join(c.K0sVars.EtcdCertDir, "ca.key")
+		etcdCaCertPath, etcdCaCertKey := filepath.Join(c.opts.K0sVars().EtcdCertDir, "ca.crt"), filepath.Join(c.opts.K0sVars().EtcdCertDir, "ca.key")
 		etcdCACert, err := os.ReadFile(etcdCaCertPath)
 		if err != nil {
 			sendError(err, resp)
@@ -227,7 +227,7 @@ users:
 				Token     string
 				Namespace string
 			}{
-				Server:    c.NodeConfig.Spec.API.APIAddressURL(),
+				Server:    c.opts.NodeConfig().Spec.API.APIAddressURL(),
 				Ca:        base64.StdEncoding.EncodeToString(secretWithToken.Data["ca.crt"]),
 				Token:     string(secretWithToken.Data["token"]),
 				Namespace: string(secretWithToken.Data["namespace"]),
@@ -243,27 +243,27 @@ users:
 func (c *command) caHandler() http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		caResp := v1beta1.CaResponse{}
-		key, err := os.ReadFile(path.Join(c.K0sVars.CertRootDir, "ca.key"))
+		key, err := os.ReadFile(path.Join(c.opts.K0sVars().CertRootDir, "ca.key"))
 		if err != nil {
 			sendError(err, resp)
 			return
 		}
 		caResp.Key = key
-		crt, err := os.ReadFile(path.Join(c.K0sVars.CertRootDir, "ca.crt"))
+		crt, err := os.ReadFile(path.Join(c.opts.K0sVars().CertRootDir, "ca.crt"))
 		if err != nil {
 			sendError(err, resp)
 			return
 		}
 		caResp.Cert = crt
 
-		saKey, err := os.ReadFile(path.Join(c.K0sVars.CertRootDir, "sa.key"))
+		saKey, err := os.ReadFile(path.Join(c.opts.K0sVars().CertRootDir, "sa.key"))
 		if err != nil {
 			sendError(err, resp)
 			return
 		}
 		caResp.SAKey = saKey
 
-		saPub, err := os.ReadFile(path.Join(c.K0sVars.CertRootDir, "sa.pub"))
+		saPub, err := os.ReadFile(path.Join(c.opts.K0sVars().CertRootDir, "sa.pub"))
 		if err != nil {
 			sendError(err, resp)
 			return

@@ -22,15 +22,15 @@ import (
 	"github.com/k0sproject/k0s/pkg/config"
 )
 
-func NewAirgapCmd() *cobra.Command {
+func NewAirgapCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "airgap",
 		Short: "Manage airgap setup",
 	}
 
 	cmd.SilenceUsage = true
-	cmd.AddCommand(NewAirgapListImagesCmd())
-	cmd.PersistentFlags().AddFlagSet(config.FileInputFlag())
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.AddCommand(NewAirgapListImagesCmd(opts))
+	cmd.PersistentFlags().AddFlagSet(config.FileInputFlag(opts))
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

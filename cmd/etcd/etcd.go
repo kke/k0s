@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewEtcdCmd() *cobra.Command {
+func NewEtcdCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "etcd",
 		Short: "Manage etcd cluster",
@@ -34,19 +34,18 @@ func NewEtcdCmd() *cobra.Command {
 				return err
 			}
 
-			c := config.GetCmdOpts()
-			if c.NodeConfig.Spec.Storage.Type != v1beta1.EtcdStorageType {
-				return fmt.Errorf("wrong storage type: %s", c.NodeConfig.Spec.Storage.Type)
+			if opts.NodeConfig().Spec.Storage.Type != v1beta1.EtcdStorageType {
+				return fmt.Errorf("wrong storage type: %s", opts.NodeConfig().Spec.Storage.Type)
 			}
-			if c.NodeConfig.Spec.Storage.Etcd.IsExternalClusterUsed() {
+			if opts.NodeConfig().Spec.Storage.Etcd.IsExternalClusterUsed() {
 				return fmt.Errorf("command 'k0s etcd' does not support external etcd cluster")
 			}
 			return nil
 		},
 	}
 	cmd.SilenceUsage = true
-	cmd.AddCommand(etcdLeaveCmd())
-	cmd.AddCommand(etcdListCmd())
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.AddCommand(etcdLeaveCmd(opts))
+	cmd.AddCommand(etcdListCmd(opts))
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

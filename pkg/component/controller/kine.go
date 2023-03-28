@@ -42,7 +42,7 @@ import (
 type Kine struct {
 	Config       *v1beta1.KineConfig
 	gid          int
-	K0sVars      constant.CfgVars
+	K0sVars      *constant.CfgVars
 	supervisor   supervisor.Supervisor
 	uid          int
 	bypassClient *etcd.Client

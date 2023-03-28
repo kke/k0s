@@ -18,24 +18,25 @@ package validate
 
 import (
 	configcmd "github.com/k0sproject/k0s/cmd/config"
+	"github.com/k0sproject/k0s/pkg/config"
 
 	"github.com/spf13/cobra"
 )
 
 // TODO deprecated, remove when appropriate
-func NewValidateCmd() *cobra.Command {
+func NewValidateCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:    "validate",
 		Short:  "Validation related sub-commands",
 		Hidden: true,
 	}
-	cmd.AddCommand(newConfigCmd())
+	cmd.AddCommand(newConfigCmd(opts))
 	cmd.SilenceUsage = true
 	return cmd
 }
 
-func newConfigCmd() *cobra.Command {
-	cmd := configcmd.NewValidateCmd()
+func newConfigCmd(opts *config.CLIOptions) *cobra.Command {
+	cmd := configcmd.NewValidateCmd(opts)
 	cmd.Use = "config"
 	cmd.Deprecated = "use 'k0s config validate' instead"
 	cmd.Hidden = false

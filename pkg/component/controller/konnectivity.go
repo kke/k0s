@@ -43,7 +43,7 @@ import (
 
 // Konnectivity implements the component interface of konnectivity server
 type Konnectivity struct {
-	K0sVars    constant.CfgVars
+	K0sVars    *constant.CfgVars
 	LogLevel   string
 	SingleNode bool
 	// used for lease lock

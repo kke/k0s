@@ -34,29 +34,30 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type command config.CLIOptions
+type command struct {
+	config.CLIOptions
+}
 
-func NewBackupCmd() *cobra.Command {
+func NewBackupCmd(opts *config.CLIOptions) *cobra.Command {
 	var savePath string
 
 	cmd := &cobra.Command{
 		Use:   "backup",
 		Short: "Back-Up k0s configuration. Must be run as root (or with sudo)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := command(config.GetCmdOpts())
-			if c.NodeConfig.Spec.Storage.Etcd.IsExternalClusterUsed() {
+			c := command{*opts}
+			if c.NodeConfig().Spec.Storage.Etcd.IsExternalClusterUsed() {
 				return fmt.Errorf("command 'k0s backup' does not support external etcd cluster")
 			}
 			return c.backup(savePath, cmd.OutOrStdout())
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			c := command(config.GetCmdOpts())
-			return config.PreRunValidateConfig(c.K0sVars)
+			return config.PreRunValidateConfig(opts)
 		},
 	}
 	cmd.Flags().StringVar(&savePath, "save-path", "", "destination directory path for backup assets, use '-' for stdout")
 	cmd.SilenceUsage = true
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }
 
@@ -69,11 +70,11 @@ func (c *command) backup(savePath string, out io.Writer) error {
 		return fmt.Errorf("the save-path directory (%v) does not exist", savePath)
 	}
 
-	if !dir.IsDirectory(c.K0sVars.DataDir) {
-		return fmt.Errorf("cannot find data-dir (%v). check your environment and/or command input and try again", c.K0sVars.DataDir)
+	if !dir.IsDirectory(c.K0sVars().DataDir) {
+		return fmt.Errorf("cannot find data-dir (%v). check your environment and/or command input and try again", c.K0sVars().DataDir)
 	}
 
-	status, err := status.GetStatusInfo(config.StatusSocket)
+	status, err := status.GetStatusInfo(c.StatusSocket)
 	if err != nil {
 		return fmt.Errorf("unable to detect cluster status %s", err)
 	}
@@ -84,7 +85,7 @@ func (c *command) backup(savePath string, out io.Writer) error {
 		if err != nil {
 			return err
 		}
-		return mgr.RunBackup(c.NodeConfig.Spec, c.K0sVars, savePath, out)
+		return mgr.RunBackup(c.NodeConfig().Spec, &c.CLIOptions, savePath, out)
 	}
 	return fmt.Errorf("backup command must be run on the controller node, have `%s`", status.Role)
 }

@@ -25,6 +25,7 @@ import (
 
 	"github.com/k0sproject/k0s/internal/testutil"
 	"github.com/k0sproject/k0s/pkg/certificate"
+	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/constant"
 
 	"k8s.io/client-go/tools/clientcmd"
@@ -47,7 +48,7 @@ spec:
   api:
     externalAddress: 10.0.0.86
 `
-	configGetter := testutil.NewConfigGetter(s.T(), yamlData, false, constant.GetConfig(""))
+	configGetter := testutil.NewConfigGetter(s.T(), yamlData, false, config.DefaultCLIOptions())
 	cfg := configGetter.FakeConfigFromFile()
 
 	caCert := `

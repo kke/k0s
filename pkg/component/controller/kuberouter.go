@@ -34,7 +34,7 @@ type KubeRouter struct {
 	log logrus.FieldLogger
 
 	saver   manifestsSaver
-	k0sVars constant.CfgVars
+	k0sVars *constant.CfgVars
 
 	previousConfig kubeRouterConfig
 }
@@ -57,7 +57,7 @@ type kubeRouterConfig struct {
 }
 
 // NewKubeRouter creates new KubeRouter reconciler component
-func NewKubeRouter(k0sVars constant.CfgVars, manifestsSaver manifestsSaver) *KubeRouter {
+func NewKubeRouter(k0sVars *constant.CfgVars, manifestsSaver manifestsSaver) *KubeRouter {
 	return &KubeRouter{
 		log: logrus.WithFields(logrus.Fields{"component": "kube-router"}),
 

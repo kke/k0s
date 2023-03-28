@@ -41,7 +41,7 @@ const (
 var _ manager.Component = (*Autopilot)(nil)
 
 type Autopilot struct {
-	K0sVars     constant.CfgVars
+	K0sVars     *constant.CfgVars
 	CertManager *CertificateManager
 }
 

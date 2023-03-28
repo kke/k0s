@@ -29,6 +29,7 @@ import (
 	"testing/iotest"
 
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
+	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/spf13/cobra"
 
 	"github.com/stretchr/testify/assert"
@@ -104,12 +105,13 @@ spec:
 	})
 }
 
-func newAirgapListImagesCmdWithConfig(t *testing.T, config string, args ...string) (_ *cobra.Command, out, err *bytes.Buffer) {
+func newAirgapListImagesCmdWithConfig(t *testing.T, configContent string, args ...string) (_ *cobra.Command, out, err *bytes.Buffer) {
 	configFile := filepath.Join(t.TempDir(), "k0s.yaml")
-	require.NoError(t, os.WriteFile(configFile, []byte(config), 0644))
+	require.NoError(t, os.WriteFile(configFile, []byte(configContent), 0644))
 
 	out, err = new(bytes.Buffer), new(bytes.Buffer)
-	cmd := NewAirgapListImagesCmd()
+	var opts config.CLIOptions
+	cmd := NewAirgapListImagesCmd(&opts)
 	cmd.SetArgs(append([]string{"--config=" + configFile}, args...))
 	cmd.SetIn(iotest.ErrReader(errors.New("unexpected read from standard input")))
 	cmd.SetOut(out)

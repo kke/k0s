@@ -19,12 +19,14 @@ package restore
 import (
 	"errors"
 
+	"github.com/k0sproject/k0s/pkg/config"
+
 	"github.com/spf13/cobra"
 )
 
 var restoredConfigPath string
 
-func NewRestoreCmd() *cobra.Command {
+func NewRestoreCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "restore",
 		Short: "restore k0s state from given backup archive. Not supported in Windows OS",

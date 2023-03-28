@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func NewStatusCmd() *cobra.Command {
+func NewStatusCmd(opts *config.CLIOptions) *cobra.Command {
 	var output string
 	cmd := &cobra.Command{
 		Use:     "status",
@@ -46,7 +46,7 @@ func NewStatusCmd() *cobra.Command {
 				return fmt.Errorf("currently not supported on windows")
 			}
 
-			statusInfo, err := status.GetStatusInfo(config.StatusSocket)
+			statusInfo, err := status.GetStatusInfo(opts.StatusSocket)
 			if err != nil {
 				return err
 			}
@@ -61,12 +61,12 @@ func NewStatusCmd() *cobra.Command {
 
 	cmd.SilenceUsage = true
 	cmd.PersistentFlags().StringVarP(&output, "out", "o", "", "sets type of output to json or yaml")
-	cmd.PersistentFlags().StringVar(&config.StatusSocket, "status-socket", filepath.Join(config.K0sVars.RunDir, "status.sock"), "Full file path to the socket file.")
-	cmd.AddCommand(NewStatusSubCmdComponents())
+	cmd.PersistentFlags().StringVar(&opts.StatusSocket, "status-socket", filepath.Join(opts.K0sVars().RunDir, "status.sock"), "Full file path to the socket file.")
+	cmd.AddCommand(NewStatusSubCmdComponents(opts))
 	return cmd
 }
 
-func NewStatusSubCmdComponents() *cobra.Command {
+func NewStatusSubCmdComponents(opts *config.CLIOptions) *cobra.Command {
 	var maxCount int
 	cmd := &cobra.Command{
 		Use:     "components",
@@ -78,7 +78,7 @@ func NewStatusSubCmdComponents() *cobra.Command {
 				return fmt.Errorf("currently not supported on windows")
 			}
 			fmt.Fprintln(os.Stderr, "!!! per component status is not yet finally ready, information here might be not full yet")
-			state, err := status.GetComponentStatus(config.StatusSocket, maxCount)
+			state, err := status.GetComponentStatus(opts.StatusSocket, maxCount)
 			if err != nil {
 				return err
 			}

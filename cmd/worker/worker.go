@@ -41,9 +41,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type Command config.CLIOptions
+type Command struct {
+	config.CLIOptions
+}
 
-func NewWorkerCmd() *cobra.Command {
+func NewWorkerCmd(opts *config.CLIOptions) *cobra.Command {
 	var ignorePreFlightChecks bool
 
 	cmd := &cobra.Command{
@@ -62,7 +64,7 @@ func NewWorkerCmd() *cobra.Command {
 			return config.CallParentPersistentPreRun(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := Command(config.GetCmdOpts())
+			c := Command{*opts}
 			if len(args) > 0 {
 				c.TokenArg = args[0]
 			}
@@ -84,7 +86,7 @@ func NewWorkerCmd() *cobra.Command {
 			if err := (&sysinfo.K0sSysinfoSpec{
 				ControllerRoleEnabled: false,
 				WorkerRoleEnabled:     true,
-				DataDir:               c.K0sVars.DataDir,
+				DataDir:               c.K0sVars().DataDir,
 			}).RunPreFlightChecks(ignorePreFlightChecks); !ignorePreFlightChecks && err != nil {
 				return err
 			}
@@ -99,22 +101,22 @@ func NewWorkerCmd() *cobra.Command {
 
 	// append flags
 	cmd.Flags().BoolVar(&ignorePreFlightChecks, "ignore-pre-flight-checks", false, "continue even if pre-flight checks fail")
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
-	cmd.PersistentFlags().AddFlagSet(config.GetWorkerFlags())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
+	cmd.PersistentFlags().AddFlagSet(config.GetWorkerFlags(opts))
 	return cmd
 }
 
 // Start starts the worker components based on the given [config.CLIOptions].
-func (c *Command) Start(ctx context.Context) error {
-	if err := worker.BootstrapKubeletKubeconfig(ctx, c.K0sVars, &c.WorkerOptions); err != nil {
+func (c Command) Start(ctx context.Context) error {
+	if err := worker.BootstrapKubeletKubeconfig(ctx, c.K0sVars(), &c.WorkerOptions); err != nil {
 		return err
 	}
 
-	kubeletKubeconfigPath := c.K0sVars.KubeletAuthConfigPath
+	kubeletKubeconfigPath := c.K0sVars().KubeletAuthConfigPath
 	workerConfig, err := workerconfig.LoadProfile(
 		ctx,
 		kubernetes.KubeconfigFromFile(kubeletKubeconfigPath),
-		c.K0sVars.DataDir,
+		c.K0sVars().DataDir,
 		c.WorkerProfile,
 	)
 	if err != nil {
@@ -127,7 +129,7 @@ func (c *Command) Start(ctx context.Context) error {
 
 	if !c.SingleNode && workerConfig.NodeLocalLoadBalancing.IsEnabled() {
 		sp := worker.NewStaticPods()
-		reconciler, err := nllb.NewReconciler(c.K0sVars, sp, c.WorkerProfile, *workerConfig.DeepCopy())
+		reconciler, err := nllb.NewReconciler(c.K0sVars(), sp, c.WorkerProfile, *workerConfig.DeepCopy())
 		if err != nil {
 			return fmt.Errorf("failed to create node-local load balancer reconciler: %w", err)
 		}
@@ -144,11 +146,11 @@ func (c *Command) Start(ctx context.Context) error {
 	if c.CriSocket == "" {
 		componentManager.Add(ctx, &worker.ContainerD{
 			LogLevel: c.Logging["containerd"],
-			K0sVars:  c.K0sVars,
+			K0sVars:  c.K0sVars(),
 		})
 	}
 
-	componentManager.Add(ctx, worker.NewOCIBundleReconciler(c.K0sVars))
+	componentManager.Add(ctx, worker.NewOCIBundleReconciler(c.K0sVars()))
 	if c.WorkerProfile == "default" && runtime.GOOS == "windows" {
 		c.WorkerProfile = "default-windows"
 	}
@@ -156,7 +158,7 @@ func (c *Command) Start(ctx context.Context) error {
 	componentManager.Add(ctx, &worker.Kubelet{
 		CRISocket:           c.CriSocket,
 		EnableCloudProvider: c.CloudProvider,
-		K0sVars:             c.K0sVars,
+		K0sVars:             c.K0sVars(),
 		StaticPods:          staticPods,
 		Kubeconfig:          kubeletKubeconfigPath,
 		Configuration:       *workerConfig.KubeletConfiguration.DeepCopy(),
@@ -172,7 +174,7 @@ func (c *Command) Start(ctx context.Context) error {
 			return fmt.Errorf("no join-token given, which is required for windows bootstrap")
 		}
 		componentManager.Add(ctx, &worker.KubeProxy{
-			K0sVars:   c.K0sVars,
+			K0sVars:   c.K0sVars(),
 			LogLevel:  c.Logging["kube-proxy"],
 			CIDRRange: c.CIDRRange,
 		})
@@ -186,7 +188,7 @@ func (c *Command) Start(ctx context.Context) error {
 
 	certManager := worker.NewCertificateManager(ctx, kubeletKubeconfigPath)
 	if !c.SingleNode && !c.EnableWorker {
-		clusterConfig, err := config.LoadClusterConfig(c.K0sVars)
+		clusterConfig, err := config.LoadClusterConfig(&c.CLIOptions)
 		if err != nil {
 			return fmt.Errorf("failed to load cluster config: %w", err)
 		}
@@ -200,16 +202,16 @@ func (c *Command) Start(ctx context.Context) error {
 				Version:       build.Version,
 				Workloads:     true,
 				SingleNode:    false,
-				K0sVars:       c.K0sVars,
+				K0sVars:       c.K0sVars(),
 				ClusterConfig: clusterConfig,
 			},
 			CertManager: certManager,
-			Socket:      config.StatusSocket,
+			Socket:      c.StatusSocket,
 		})
 	}
 
 	componentManager.Add(ctx, &worker.Autopilot{
-		K0sVars:     c.K0sVars,
+		K0sVars:     c.K0sVars(),
 		CertManager: certManager,
 	})
 

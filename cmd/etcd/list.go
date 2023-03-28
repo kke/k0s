@@ -27,14 +27,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func etcdListCmd() *cobra.Command {
+func etcdListCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "member-list",
 		Short: "Returns etcd cluster members list",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
 			ctx := context.Background()
-			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, c.NodeConfig.Spec.Storage.Etcd)
+			etcdClient, err := etcd.NewClient(opts.K0sVars().CertRootDir, opts.K0sVars().EtcdCertDir, opts.NodeConfig().Spec.Storage.Etcd)
 			if err != nil {
 				return fmt.Errorf("can't list etcd cluster members: %v", err)
 			}
@@ -45,6 +44,6 @@ func etcdListCmd() *cobra.Command {
 			return json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]interface{}{"members": members})
 		},
 	}
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

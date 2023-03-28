@@ -19,12 +19,14 @@ package backup
 import (
 	"errors"
 
+	"github.com/k0sproject/k0s/pkg/config"
+
 	"github.com/spf13/cobra"
 )
 
 var savePath string
 
-func NewBackupCmd() *cobra.Command {
+func NewBackupCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "backup",
 		Short: "Back-Up k0s configuration. Not supported on Windows OS",

@@ -27,24 +27,23 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func etcdLeaveCmd() *cobra.Command {
+func etcdLeaveCmd(opts *config.CLIOptions) *cobra.Command {
 	var etcdPeerAddress string
 
 	cmd := &cobra.Command{
 		Use:   "leave",
 		Short: "Sign off a given etc node from etcd cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
 			ctx := context.Background()
 			if etcdPeerAddress == "" {
-				etcdPeerAddress = c.NodeConfig.Spec.Storage.Etcd.PeerAddress
+				etcdPeerAddress = opts.NodeConfig().Spec.Storage.Etcd.PeerAddress
 			}
 			if etcdPeerAddress == "" {
 				return fmt.Errorf("can't leave etcd cluster: peer address is empty, check the config file or use cli argument")
 			}
 
 			peerURL := fmt.Sprintf("https://%s:2380", etcdPeerAddress)
-			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, c.NodeConfig.Spec.Storage.Etcd)
+			etcdClient, err := etcd.NewClient(opts.K0sVars().CertRootDir, opts.K0sVars().EtcdCertDir, opts.NodeConfig().Spec.Storage.Etcd)
 			if err != nil {
 				return fmt.Errorf("can't connect to the etcd: %v", err)
 			}
@@ -71,6 +70,6 @@ func etcdLeaveCmd() *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&etcdPeerAddress, "peer-address", "", "etcd peer address")
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

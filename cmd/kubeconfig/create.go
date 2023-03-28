@@ -52,7 +52,7 @@ users:
     client-key-data: {{.ClientKey}}
 `))
 
-func kubeconfigCreateCmd() *cobra.Command {
+func kubeconfigCreateCmd(opts *config.CLIOptions) *cobra.Command {
 	var groups string
 
 	cmd := &cobra.Command{
@@ -71,14 +71,13 @@ Note: A certificate once signed cannot be revoked for a particular user`,
 				return fmt.Errorf("username is mandatory")
 			}
 			username := args[0]
-			c := config.GetCmdOpts()
-			clusterAPIURL := c.NodeConfig.Spec.API.APIAddressURL()
+			clusterAPIURL := opts.NodeConfig().Spec.API.APIAddressURL()
 
-			caCert, err := os.ReadFile(path.Join(c.K0sVars.CertRootDir, "ca.crt"))
+			caCert, err := os.ReadFile(path.Join(opts.K0sVars().CertRootDir, "ca.crt"))
 			if err != nil {
 				return fmt.Errorf("failed to read cluster ca certificate: %w, check if the control plane is initialized on this node", err)
 			}
-			caCertPath, caCertKey := path.Join(c.K0sVars.CertRootDir, "ca.crt"), path.Join(c.K0sVars.CertRootDir, "ca.key")
+			caCertPath, caCertKey := path.Join(opts.K0sVars().CertRootDir, "ca.crt"), path.Join(opts.K0sVars().CertRootDir, "ca.key")
 			userReq := certificate.Request{
 				Name:   username,
 				CN:     username,
@@ -87,7 +86,7 @@ Note: A certificate once signed cannot be revoked for a particular user`,
 				CAKey:  caCertKey,
 			}
 			certManager := certificate.Manager{
-				K0sVars: c.K0sVars,
+				K0sVars: opts.K0sVars(),
 			}
 			userCert, err := certManager.EnsureCertificate(userReq, "root")
 			if err != nil {
@@ -122,6 +121,6 @@ Note: A certificate once signed cannot be revoked for a particular user`,
 		},
 	}
 	cmd.Flags().StringVar(&groups, "groups", "", "Specify groups")
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

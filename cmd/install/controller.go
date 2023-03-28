@@ -22,7 +22,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func installControllerCmd(installFlags *installFlags) *cobra.Command {
+func installControllerCmd(installFlags *installFlags, opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "controller",
 		Short:   "Install k0s controller on a brand-new system. Must be run as root (or with sudo)",
@@ -34,7 +34,7 @@ With the controller subcommand you can setup a single node cluster by running:
 	k0s install controller --single
 	`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := command(config.GetCmdOpts())
+			c := command{*opts}
 			if err := c.convertFileParamsToAbsolute(); err != nil {
 				cmd.SilenceUsage = true
 				return err
@@ -48,13 +48,12 @@ With the controller subcommand you can setup a single node cluster by running:
 			return nil
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			c := command(config.GetCmdOpts())
-			return config.PreRunValidateConfig(c.K0sVars)
+			return config.PreRunValidateConfig(opts)
 		},
 	}
 	// append flags
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
-	cmd.Flags().AddFlagSet(config.GetControllerFlags())
-	cmd.Flags().AddFlagSet(config.GetWorkerFlags())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
+	cmd.Flags().AddFlagSet(config.GetControllerFlags(opts))
+	cmd.Flags().AddFlagSet(config.GetWorkerFlags(opts))
 	return cmd
 }

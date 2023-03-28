@@ -42,7 +42,7 @@ type ClientFactoryInterface interface {
 }
 
 // NewAdminClientFactory creates a new factory that loads the admin kubeconfig based client
-func NewAdminClientFactory(k0sVars constant.CfgVars) ClientFactoryInterface {
+func NewAdminClientFactory(k0sVars *constant.CfgVars) ClientFactoryInterface {
 	return &ClientFactory{
 		configPath: k0sVars.AdminKubeConfigPath,
 	}

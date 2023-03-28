@@ -94,7 +94,7 @@ type backend interface {
 // NewReconciler creates a component that reconciles a static Pod that
 // implements node-local load balancing.
 func NewReconciler(
-	k0sVars constant.CfgVars,
+	k0sVars *constant.CfgVars,
 	staticPods worker.StaticPods,
 	workerProfileName string,
 	workerProfile workerconfig.Profile,

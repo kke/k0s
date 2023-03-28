@@ -46,7 +46,7 @@ type Metrics struct {
 	log logrus.FieldLogger
 
 	hostname   string
-	K0sVars    constant.CfgVars
+	K0sVars    *constant.CfgVars
 	saver      manifestsSaver
 	restClient rest.Interface
 
@@ -59,7 +59,7 @@ var _ manager.Component = (*Metrics)(nil)
 var _ manager.Reconciler = (*Metrics)(nil)
 
 // NewMetrics creates new Metrics reconciler
-func NewMetrics(k0sVars constant.CfgVars, saver manifestsSaver, clientCF kubernetes.ClientFactoryInterface) (*Metrics, error) {
+func NewMetrics(k0sVars *constant.CfgVars, saver manifestsSaver, clientCF kubernetes.ClientFactoryInterface) (*Metrics, error) {
 	hostname, err := os.Hostname()
 	if err != nil {
 		return nil, err

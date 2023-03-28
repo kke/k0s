@@ -33,8 +33,8 @@ var (
 )
 
 // InitRuntimeConfig generates the runtime /run/k0s/k0s.yaml
-func (rules *ClientConfigLoadingRules) InitRuntimeConfig(k0sVars constant.CfgVars) error {
-	rules.K0sVars = k0sVars
+func (rules *ClientConfigLoadingRules) InitRuntimeConfig(opts *CLIOptions) error {
+	rules.Opts = opts
 	cfg, err := rules.ParseRuntimeConfig()
 	if err != nil {
 		return err
@@ -69,10 +69,10 @@ func (rules *ClientConfigLoadingRules) ParseRuntimeConfig() (*v1beta1.ClusterCon
 	var cfg *v1beta1.ClusterConfig
 
 	var storage *v1beta1.StorageSpec
-	if rules.K0sVars.DefaultStorageType == "kine" {
+	if rules.Opts.DefaultStorageType() == "kine" {
 		storage = &v1beta1.StorageSpec{
 			Type: v1beta1.KineStorageType,
-			Kine: v1beta1.DefaultKineConfig(rules.K0sVars.DataDir),
+			Kine: v1beta1.DefaultKineConfig(rules.Opts.K0sVars().DataDir),
 		}
 	}
 	if rules.RuntimeConfigPath == "" {
@@ -97,7 +97,7 @@ func (rules *ClientConfigLoadingRules) ParseRuntimeConfig() (*v1beta1.ClusterCon
 		return cfg, nil
 	}
 
-	switch CfgFile {
+	switch rules.Opts.CfgFile {
 	// stdin input
 	case "-":
 		return v1beta1.ConfigFromReader(os.Stdin, storage)
@@ -117,7 +117,7 @@ func (rules *ClientConfigLoadingRules) ParseRuntimeConfig() (*v1beta1.ClusterCon
 			return nil, err
 		}
 	default:
-		f, err := os.Open(CfgFile)
+		f, err := os.Open(rules.Opts.CfgFile)
 		if err != nil {
 			return nil, err
 		}
@@ -130,7 +130,7 @@ func (rules *ClientConfigLoadingRules) ParseRuntimeConfig() (*v1beta1.ClusterCon
 	}
 	if cfg.Spec.Storage.Type == v1beta1.KineStorageType && cfg.Spec.Storage.Kine == nil {
 		logrus.Warn("storage type is kine but no config given, setting up defaults")
-		cfg.Spec.Storage.Kine = v1beta1.DefaultKineConfig(rules.K0sVars.DataDir)
+		cfg.Spec.Storage.Kine = v1beta1.DefaultKineConfig(rules.Opts.K0sVars().DataDir)
 	}
 
 	if cfg.Spec.Install == nil {
@@ -166,7 +166,7 @@ func (rules *ClientConfigLoadingRules) writeConfig(yamlData []byte, storageSpec 
 
 	err = file.WriteContentAtomically(rules.RuntimeConfigPath, data, 0600)
 	if err != nil {
-		return fmt.Errorf("failed to write runtime config to %s (%v): %v", rules.K0sVars.RunDir, rules.RuntimeConfigPath, err)
+		return fmt.Errorf("failed to write runtime config to %s (%v): %v", rules.Opts.K0sVars().RunDir, rules.RuntimeConfigPath, err)
 	}
 	return nil
 }

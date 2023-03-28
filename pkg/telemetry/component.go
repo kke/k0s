@@ -33,7 +33,7 @@ import (
 // Component is a telemetry component for k0s component manager
 type Component struct {
 	clusterConfig     *v1beta1.ClusterConfig
-	K0sVars           constant.CfgVars
+	K0sVars           *constant.CfgVars
 	Version           string
 	KubeClientFactory kubeutil.ClientFactoryInterface
 

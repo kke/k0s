@@ -55,8 +55,8 @@ type ClusterConfigReconciler struct {
 }
 
 // NewClusterConfigReconciler creates a new clusterConfig reconciler
-func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars constant.CfgVars, mgr *manager.Manager, s manifestsSaver, kubeClientFactory kubeutil.ClientFactoryInterface, configSource clusterconfig.ConfigSource) (*ClusterConfigReconciler, error) {
-	loadingRules := config.ClientConfigLoadingRules{K0sVars: k0sVars}
+func NewClusterConfigReconciler(leaderElector leaderelector.Interface, opts *config.CLIOptions, mgr *manager.Manager, s manifestsSaver, kubeClientFactory kubeutil.ClientFactoryInterface, configSource clusterconfig.ConfigSource) (*ClusterConfigReconciler, error) {
+	loadingRules := config.ClientConfigLoadingRules{Opts: opts}
 	cfg, err := loadingRules.ParseRuntimeConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get config: %v", err)

@@ -41,17 +41,17 @@ type ConfigGetter struct {
 	NodeConfig bool
 	YamlData   string
 
-	t       *testing.T
-	k0sVars constant.CfgVars
+	t    *testing.T
+	opts *config.CLIOptions
 }
 
 // NewConfigGetter sets the parameters required to fetch a fake config for testing
-func NewConfigGetter(t *testing.T, yamlData string, isNodeConfig bool, k0sVars constant.CfgVars) *ConfigGetter {
+func NewConfigGetter(t *testing.T, yamlData string, isNodeConfig bool, opts *config.CLIOptions) *ConfigGetter {
 	return &ConfigGetter{
 		YamlData:   yamlData,
 		NodeConfig: isNodeConfig,
 		t:          t,
-		k0sVars:    k0sVars,
+		opts:       opts,
 	}
 }
 
@@ -60,7 +60,7 @@ func (c *ConfigGetter) FakeConfigFromFile() *v1beta1.ClusterConfig {
 	loadingRules := config.ClientConfigLoadingRules{
 		RuntimeConfigPath: c.initRuntimeConfig(),
 		Nodeconfig:        c.NodeConfig,
-		K0sVars:           c.k0sVars,
+		Opts:              c.opts,
 	}
 
 	cfg, err := loadingRules.Load()
@@ -78,7 +78,7 @@ func (c *ConfigGetter) FakeAPIConfig() *v1beta1.ClusterConfig {
 		RuntimeConfigPath: path.Join(c.t.TempDir(), "nonexistent-k0s.yaml"),
 		Nodeconfig:        c.NodeConfig,
 		APIClient:         client.K0sV1beta1(),
-		K0sVars:           c.k0sVars,
+		Opts:              c.opts,
 	}
 
 	cfg, err := loadingRules.Load()
@@ -115,10 +115,10 @@ func (c *ConfigGetter) createFakeAPIConfig(client k0sv1beta1.K0sV1beta1Interface
 func (c *ConfigGetter) getStorageSpec() *v1beta1.StorageSpec {
 	var storage *v1beta1.StorageSpec
 
-	if c.k0sVars.DefaultStorageType == "kine" {
+	if c.opts.DefaultStorageType() == "kine" {
 		storage = &v1beta1.StorageSpec{
 			Type: v1beta1.KineStorageType,
-			Kine: v1beta1.DefaultKineConfig(c.k0sVars.DataDir),
+			Kine: v1beta1.DefaultKineConfig(c.opts.K0sVars().DataDir),
 		}
 	}
 	return storage

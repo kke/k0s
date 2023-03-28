@@ -20,13 +20,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/install"
 
 	"github.com/kardianos/service"
 	"github.com/spf13/cobra"
 )
 
-func NewStartCmd() *cobra.Command {
+func NewStartCmd(opts *config.CLIOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "start",
 		Short: "Start the k0s service configured on this host. Must be run as root (or with sudo)",

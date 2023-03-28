@@ -19,22 +19,23 @@ package token
 import (
 	"fmt"
 
+	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/token"
 
 	"github.com/spf13/cobra"
 )
 
-func NewTokenCmd() *cobra.Command {
+func NewTokenCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "token",
 		Short: "Manage join tokens",
 	}
 
 	cmd.SilenceUsage = true
-	cmd.AddCommand(tokenCreateCmd())
-	cmd.AddCommand(tokenListCmd())
-	cmd.AddCommand(tokenInvalidateCmd())
-	cmd.AddCommand(preSharedCmd())
+	cmd.AddCommand(tokenCreateCmd(opts))
+	cmd.AddCommand(tokenListCmd(opts))
+	cmd.AddCommand(tokenInvalidateCmd(opts))
+	cmd.AddCommand(preSharedCmd(opts))
 	return cmd
 }
 

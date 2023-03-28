@@ -22,7 +22,7 @@ import (
 	"github.com/k0sproject/k0s/pkg/config"
 )
 
-func installWorkerCmd(installFlags *installFlags) *cobra.Command {
+func installWorkerCmd(installFlags *installFlags, opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "worker",
 		Short: "Install k0s worker on a brand-new system. Must be run as root (or with sudo)",
@@ -31,7 +31,7 @@ All default values of worker command will be passed to the service stub unless o
 
 Windows flags like "--api-server", "--cidr-range" and "--cluster-dns" will be ignored since install command doesn't yet support Windows services`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := command(config.GetCmdOpts())
+			c := command{*opts}
 			if err := c.convertFileParamsToAbsolute(); err != nil {
 				cmd.SilenceUsage = true
 				return err
@@ -48,8 +48,8 @@ Windows flags like "--api-server", "--cidr-range" and "--cluster-dns" will be ig
 		},
 	}
 	// append flags
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
-	cmd.PersistentFlags().AddFlagSet(config.GetWorkerFlags())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
+	cmd.PersistentFlags().AddFlagSet(config.GetWorkerFlags(opts))
 
 	return cmd
 }

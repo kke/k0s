@@ -37,7 +37,7 @@ const (
 )
 
 // CreateKubeletBootstrapToken creates a new k0s bootstrap token.
-func CreateKubeletBootstrapToken(ctx context.Context, api *v1beta1.APISpec, k0sVars constant.CfgVars, role string, expiry time.Duration) (string, error) {
+func CreateKubeletBootstrapToken(ctx context.Context, api *v1beta1.APISpec, k0sVars *constant.CfgVars, role string, expiry time.Duration) (string, error) {
 	userName, joinURL, err := loadUserAndJoinURL(api, role)
 	if err != nil {
 		return "", err
@@ -91,7 +91,7 @@ func loadUserAndJoinURL(api *v1beta1.APISpec, role string) (string, string, erro
 	}
 }
 
-func loadCACert(k0sVars constant.CfgVars) ([]byte, error) {
+func loadCACert(k0sVars *constant.CfgVars) ([]byte, error) {
 	crtFile := filepath.Join(k0sVars.CertRootDir, "ca.crt")
 	caCert, err := os.ReadFile(crtFile)
 	if err != nil {
@@ -101,7 +101,7 @@ func loadCACert(k0sVars constant.CfgVars) ([]byte, error) {
 	return caCert, nil
 }
 
-func loadToken(ctx context.Context, k0sVars constant.CfgVars, role string, expiry time.Duration) (string, error) {
+func loadToken(ctx context.Context, k0sVars *constant.CfgVars, role string, expiry time.Duration) (string, error) {
 	manager, err := NewManager(filepath.Join(k0sVars.AdminKubeConfigPath))
 	if err != nil {
 		return "", err

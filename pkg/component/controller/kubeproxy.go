@@ -38,7 +38,7 @@ type KubeProxy struct {
 	log logrus.FieldLogger
 
 	nodeConf    *v1beta1.ClusterConfig
-	K0sVars     constant.CfgVars
+	K0sVars     *constant.CfgVars
 	manifestDir string
 
 	previousConfig proxyConfig
@@ -48,7 +48,7 @@ var _ manager.Component = (*KubeProxy)(nil)
 var _ manager.Reconciler = (*KubeProxy)(nil)
 
 // NewKubeProxy creates new KubeProxy component
-func NewKubeProxy(k0sVars constant.CfgVars, nodeConfig *v1beta1.ClusterConfig) *KubeProxy {
+func NewKubeProxy(k0sVars *constant.CfgVars, nodeConfig *v1beta1.ClusterConfig) *KubeProxy {
 	return &KubeProxy{
 		log: logrus.WithFields(logrus.Fields{"component": "kubeproxy"}),
 

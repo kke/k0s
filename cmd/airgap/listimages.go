@@ -25,7 +25,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewAirgapListImagesCmd() *cobra.Command {
+func NewAirgapListImagesCmd(opts *config.CLIOptions) *cobra.Command {
 	var all bool
 
 	cmd := &cobra.Command{
@@ -33,8 +33,7 @@ func NewAirgapListImagesCmd() *cobra.Command {
 		Short:   "List image names and version needed for air-gap install",
 		Example: `k0s airgap list-images`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
-			clusterConfig, err := config.LoadClusterConfig(c.K0sVars)
+			clusterConfig, err := config.LoadClusterConfig(opts)
 			if err != nil {
 				return fmt.Errorf("failed to load cluster config: %w", err)
 			}
@@ -45,8 +44,8 @@ func NewAirgapListImagesCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().AddFlagSet(config.FileInputFlag())
+	cmd.Flags().AddFlagSet(config.FileInputFlag(opts))
 	cmd.Flags().BoolVar(&all, "all", false, "include all images, even if they are not used in the current configuration")
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

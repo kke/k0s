@@ -35,7 +35,7 @@ import (
 	"github.com/k0sproject/k0s/pkg/token"
 )
 
-func preSharedCmd() *cobra.Command {
+func preSharedCmd(opts *config.CLIOptions) *cobra.Command {
 	var (
 		certPath      string
 		joinURL       string
@@ -83,7 +83,7 @@ func preSharedCmd() *cobra.Command {
 	cmd.Flags().StringVar(&preSharedRole, "role", "worker", "token role. valid values: worker, controller. Default: worker")
 	cmd.Flags().StringVar(&outDir, "out", ".", "path to the output directory. Default: current dir")
 	cmd.Flags().DurationVar(&validity, "valid", 0, "how long token is valid, in Go duration format")
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }
 

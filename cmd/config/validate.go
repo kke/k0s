@@ -22,16 +22,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewValidateCmd() *cobra.Command {
+func NewValidateCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "validate",
 		Short: "Validate k0s configuration",
 		Long: `Example:
    k0s config validate --config path_to_config.yaml`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
-
-			loadingRules := config.ClientConfigLoadingRules{K0sVars: c.K0sVars}
+			loadingRules := config.ClientConfigLoadingRules{Opts: opts}
 			_, err := loadingRules.ParseRuntimeConfig()
 			return err
 		},
@@ -39,7 +37,7 @@ func NewValidateCmd() *cobra.Command {
 		SilenceErrors: true,
 	}
 
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
-	cmd.Flags().AddFlagSet(config.FileInputFlag())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
+	cmd.Flags().AddFlagSet(config.FileInputFlag(opts))
 	return cmd
 }

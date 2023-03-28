@@ -273,7 +273,7 @@ func (c *ClusterConfig) UnmarshalJSON(data []byte) error {
 // DefaultClusterSpec default settings
 func DefaultClusterSpec(defaultStorage ...*StorageSpec) *ClusterSpec {
 	var storage *StorageSpec
-	if defaultStorage == nil || defaultStorage[0] == nil {
+	if len(defaultStorage) == 0 || defaultStorage[0] == nil {
 		storage = DefaultStorageSpec()
 	} else {
 		storage = defaultStorage[0]

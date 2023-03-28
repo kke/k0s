@@ -37,32 +37,52 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-var (
-	CfgFile        string
-	DataDir        string
-	Debug          bool
-	DebugListenOn  string
-	StatusSocket   string
-	K0sVars        constant.CfgVars
-	workerOpts     WorkerOptions
-	Verbose        bool
-	controllerOpts ControllerOptions
-)
-
 // This struct holds all the CLI options & settings required by the
 // different k0s sub-commands
 type CLIOptions struct {
 	WorkerOptions
 	ControllerOptions
 	CfgFile          string
-	NodeConfig       *v1beta1.ClusterConfig
 	Debug            bool
 	DebugListenOn    string
 	DefaultLogLevels map[string]string
-	K0sVars          constant.CfgVars
 	Logging          map[string]string // merged outcome of default log levels and cmdLoglevels
 	Verbose          bool
 	AutopilotRoot    aproot.Root
+	DataDir          string
+	StatusSocket     string
+	nodeConfig       *v1beta1.ClusterConfig
+	k0sVars          *constant.CfgVars
+}
+
+func DefaultCLIOptions() *CLIOptions {
+	return &CLIOptions{
+		DefaultLogLevels: DefaultLogLevels(),
+		WorkerOptions: WorkerOptions{
+			CmdLogLevels: DefaultLogLevels(),
+		},
+	}
+}
+
+func (o *CLIOptions) K0sVars() *constant.CfgVars {
+	if o.k0sVars == nil {
+		o.k0sVars = constant.GetConfig(o.DataDir)
+	}
+	return o.k0sVars
+}
+
+func (o *CLIOptions) DefaultStorageType() string {
+	if o.ControllerOptions.SingleNode {
+		return "kine"
+	}
+	return "etcd"
+}
+
+func (o *CLIOptions) NodeConfig() *v1beta1.ClusterConfig {
+	if o.nodeConfig == nil {
+		o.nodeConfig = getNodeConfig(o)
+	}
+	return o.nodeConfig
 }
 
 // Shared controller cli flags
@@ -100,6 +120,10 @@ type WorkerOptions struct {
 }
 
 func (o *ControllerOptions) Normalize() error {
+	if o.SingleNode {
+		o.EnableWorker = true
+	}
+
 	// Normalize component names
 	var disabledComponents []string
 	for _, disabledComponent := range o.DisableComponents {
@@ -136,39 +160,41 @@ func DefaultLogLevels() map[string]string {
 	}
 }
 
-func GetPersistentFlagSet() *pflag.FlagSet {
+func GetPersistentFlagSet(opts *CLIOptions) *pflag.FlagSet {
 	flagset := &pflag.FlagSet{}
-	flagset.BoolVarP(&Debug, "debug", "d", false, "Debug logging (default: false)")
-	flagset.BoolVarP(&Verbose, "verbose", "v", false, "Verbose logging (default: false)")
-	flagset.StringVar(&DataDir, "data-dir", "", "Data Directory for k0s (default: /var/lib/k0s). DO NOT CHANGE for an existing setup, things will break!")
-	flagset.StringVar(&StatusSocket, "status-socket", filepath.Join(K0sVars.RunDir, "status.sock"), "Full file path to the socket file.")
-	flagset.StringVar(&DebugListenOn, "debugListenOn", ":6060", "Http listenOn for Debug pprof handler")
+	flagset.BoolVarP(&opts.Debug, "debug", "d", false, "Debug logging (default: false)")
+	flagset.BoolVarP(&opts.Verbose, "verbose", "v", false, "Verbose logging (default: false)")
+	flagset.StringVar(&opts.DataDir, "data-dir", "", "Data Directory for k0s (default: /var/lib/k0s). DO NOT CHANGE for an existing setup, things will break!")
+	flagset.StringVar(&opts.StatusSocket, "status-socket", filepath.Join(opts.K0sVars().RunDir, "status.sock"), "Full file path to the socket file.")
+	flagset.StringVar(&opts.DebugListenOn, "debugListenOn", ":6060", "Http listenOn for Debug pprof handler")
 	return flagset
 }
 
 // XX: not a pretty hack, but we need the data-dir flag for the kubectl subcommand
 // XX: when other global flags cannot be used (specifically -d and -c)
-func GetKubeCtlFlagSet() *pflag.FlagSet {
+func GetKubeCtlFlagSet(opts *CLIOptions) *pflag.FlagSet {
 	debugDefault := false
 	if v, ok := os.LookupEnv("DEBUG"); ok {
 		debugDefault, _ = strconv.ParseBool(v)
 	}
 
 	flagset := &pflag.FlagSet{}
-	flagset.StringVar(&DataDir, "data-dir", "", "Data Directory for k0s (default: /var/lib/k0s). DO NOT CHANGE for an existing setup, things will break!")
-	flagset.BoolVar(&Debug, "debug", debugDefault, "Debug logging [$DEBUG]")
+	flagset.StringVar(&opts.DataDir, "data-dir", "", "Data Directory for k0s (default: /var/lib/k0s). DO NOT CHANGE for an existing setup, things will break!")
+	flagset.BoolVar(&opts.Debug, "debug", debugDefault, "Debug logging [$DEBUG]")
 	return flagset
 }
 
-func GetCriSocketFlag() *pflag.FlagSet {
+func GetCriSocketFlag(opts *CLIOptions) *pflag.FlagSet {
 	flagset := &pflag.FlagSet{}
+	workerOpts := &opts.WorkerOptions
 	flagset.StringVar(&workerOpts.CriSocket, "cri-socket", "", "container runtime socket to use, default to internal containerd. Format: [remote|docker]:[path-to-socket]")
 	return flagset
 }
 
-func GetWorkerFlags() *pflag.FlagSet {
+func GetWorkerFlags(opts *CLIOptions) *pflag.FlagSet {
 	flagset := &pflag.FlagSet{}
 
+	workerOpts := &opts.WorkerOptions
 	flagset.StringVar(&workerOpts.WorkerProfile, "profile", "default", "worker profile to use on the node")
 	flagset.StringVar(&workerOpts.APIServer, "api-server", "", "HACK: api-server for the windows worker node")
 	flagset.StringVar(&workerOpts.CIDRRange, "cidr-range", "10.96.0.0/12", "HACK: cidr range for the windows worker node")
@@ -180,7 +206,7 @@ func GetWorkerFlags() *pflag.FlagSet {
 	flagset.StringSliceVarP(&workerOpts.Taints, "taints", "", []string{}, "Node taints, list of key=value:effect strings")
 	flagset.StringVar(&workerOpts.KubeletExtraArgs, "kubelet-extra-args", "", "extra args for kubelet")
 	flagset.StringVar(&workerOpts.IPTablesMode, "iptables-mode", "", "iptables mode (valid values: nft, legacy, auto). default: auto")
-	flagset.AddFlagSet(GetCriSocketFlag())
+	flagset.AddFlagSet(GetCriSocketFlag(opts))
 
 	return flagset
 }
@@ -204,8 +230,11 @@ var availableComponents = []string{
 	constant.WorkerConfigComponentName,
 }
 
-func GetControllerFlags() *pflag.FlagSet {
+func GetControllerFlags(opts *CLIOptions) *pflag.FlagSet {
 	flagset := &pflag.FlagSet{}
+
+	workerOpts := &opts.WorkerOptions
+	controllerOpts := &opts.ControllerOptions
 
 	flagset.StringVar(&workerOpts.WorkerProfile, "profile", "default", "worker profile to use on the node")
 	flagset.BoolVar(&controllerOpts.EnableWorker, "enable-worker", false, "enable worker (default false)")
@@ -217,55 +246,23 @@ func GetControllerFlags() *pflag.FlagSet {
 	flagset.BoolVar(&controllerOpts.EnableK0sCloudProvider, "enable-k0s-cloud-provider", false, "enables the k0s-cloud-provider (default false)")
 	flagset.DurationVar(&controllerOpts.K0sCloudProviderUpdateFrequency, "k0s-cloud-provider-update-frequency", 2*time.Minute, "the frequency of k0s-cloud-provider node updates")
 	flagset.IntVar(&controllerOpts.K0sCloudProviderPort, "k0s-cloud-provider-port", cloudprovider.CloudControllerManagerPort, "the port that k0s-cloud-provider binds on")
-	flagset.AddFlagSet(GetCriSocketFlag())
+	flagset.AddFlagSet(GetCriSocketFlag(opts))
 	flagset.BoolVar(&controllerOpts.EnableDynamicConfig, "enable-dynamic-config", false, "enable cluster-wide dynamic config based on custom resource")
 	flagset.BoolVar(&controllerOpts.EnableMetricsScraper, "enable-metrics-scraper", false, "enable scraping metrics from the controller components (kube-scheduler, kube-controller-manager)")
 	flagset.StringVar(&controllerOpts.KubeControllerManagerExtraArgs, "kube-controller-manager-extra-args", "", "extra args for kube-controller-manager")
-	flagset.AddFlagSet(FileInputFlag())
+	flagset.AddFlagSet(FileInputFlag(opts))
 	return flagset
 }
 
 // The config flag used to be a persistent, joint flag to all commands
 // now only a few commands use it. This function helps to share the flag with multiple commands without needing to define
 // it in multiple places
-func FileInputFlag() *pflag.FlagSet {
+func FileInputFlag(opts *CLIOptions) *pflag.FlagSet {
 	flagset := &pflag.FlagSet{}
 	descString := fmt.Sprintf("config file, use '-' to read the config from stdin (default \"%s\")", constant.K0sConfigPathDefault)
-	flagset.StringVarP(&CfgFile, "config", "c", "", descString)
+	flagset.StringVarP(&opts.CfgFile, "config", "c", "", descString)
 
 	return flagset
-}
-
-func GetCmdOpts() CLIOptions {
-	K0sVars = constant.GetConfig(DataDir)
-
-	if controllerOpts.SingleNode {
-		controllerOpts.EnableWorker = true
-		K0sVars.DefaultStorageType = "kine"
-	}
-
-	// When CfgFile is set, verify the file can be opened
-	if CfgFile != "" {
-		if fd, err := os.Open(CfgFile); err != nil {
-			logrus.WithError(err).Fatalf("Cannot access config file (%s)", CfgFile)
-		} else {
-			_ = fd.Close()
-		}
-	}
-
-	opts := CLIOptions{
-		ControllerOptions: controllerOpts,
-		WorkerOptions:     workerOpts,
-
-		CfgFile:          CfgFile,
-		NodeConfig:       getNodeConfig(K0sVars),
-		Debug:            Debug,
-		Verbose:          Verbose,
-		DefaultLogLevels: DefaultLogLevels(),
-		K0sVars:          K0sVars,
-		DebugListenOn:    DebugListenOn,
-	}
-	return opts
 }
 
 // CallParentPersistentPreRun runs the parent command's persistent pre-run.
@@ -299,8 +296,8 @@ func CallParentPersistentPreRun(c *cobra.Command, args []string) error {
 	return nil
 }
 
-func PreRunValidateConfig(k0sVars constant.CfgVars) error {
-	loadingRules := ClientConfigLoadingRules{K0sVars: k0sVars}
+func PreRunValidateConfig(opts *CLIOptions) error {
+	loadingRules := ClientConfigLoadingRules{Opts: opts}
 	_, err := loadingRules.ParseRuntimeConfig()
 	if err != nil {
 		return fmt.Errorf("failed to get config: %v", err)
@@ -308,8 +305,8 @@ func PreRunValidateConfig(k0sVars constant.CfgVars) error {
 	return nil
 }
 
-func getNodeConfig(k0sVars constant.CfgVars) *v1beta1.ClusterConfig {
-	loadingRules := ClientConfigLoadingRules{Nodeconfig: true, K0sVars: k0sVars}
+func getNodeConfig(opts *CLIOptions) *v1beta1.ClusterConfig {
+	loadingRules := ClientConfigLoadingRules{Nodeconfig: true, Opts: opts}
 	cfg, err := loadingRules.Load()
 	if err != nil {
 		return nil
@@ -317,7 +314,7 @@ func getNodeConfig(k0sVars constant.CfgVars) *v1beta1.ClusterConfig {
 	return cfg
 }
 
-func LoadClusterConfig(k0sVars constant.CfgVars) (*v1beta1.ClusterConfig, error) {
-	loadingRules := ClientConfigLoadingRules{K0sVars: k0sVars}
+func LoadClusterConfig(opts *CLIOptions) (*v1beta1.ClusterConfig, error) {
+	loadingRules := ClientConfigLoadingRules{Opts: opts}
 	return loadingRules.Load()
 }

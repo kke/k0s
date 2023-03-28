@@ -38,7 +38,7 @@ import (
 
 // Manager implement the component interface to run kube scheduler
 type Manager struct {
-	K0sVars               constant.CfgVars
+	K0sVars               *constant.CfgVars
 	LogLevel              string
 	SingleNode            bool
 	ServiceClusterIPRange string

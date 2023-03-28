@@ -44,7 +44,7 @@ const confPath = "/etc/k0s/containerd.toml"
 type ContainerD struct {
 	supervisor supervisor.Supervisor
 	LogLevel   string
-	K0sVars    constant.CfgVars
+	K0sVars    *constant.CfgVars
 
 	OCIBundlePath string
 }

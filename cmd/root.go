@@ -50,25 +50,25 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
-func NewRootCmd() *cobra.Command {
+func NewRootCmd(opts *config.CLIOptions) *cobra.Command {
 	var longDesc string
 
 	cmd := &cobra.Command{
 		Use:   "k0s",
 		Short: "k0s - Zero Friction Kubernetes",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
-			if config.Verbose {
+			if opts.Verbose {
 				k0slog.SetInfoLevel()
 			}
 
-			if config.Debug {
+			if opts.Debug {
 				// TODO: check if it actually works and is not overwritten by something else
 				k0slog.SetDebugLevel()
 
 				go func() {
-					log := logrus.WithField("debug_server", config.DebugListenOn)
+					log := logrus.WithField("debug_server", opts.DebugListenOn)
 					log.Debug("Starting debug server")
-					if err := http.ListenAndServe(config.DebugListenOn, nil); err != http.ErrServerClosed {
+					if err := http.ListenAndServe(opts.DebugListenOn, nil); err != http.ErrServerClosed {
 						log.WithError(err).Debug("Failed to start debug server")
 					} else {
 						log.Debug("Debug server closed")
@@ -78,30 +78,30 @@ func NewRootCmd() *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(airgap.NewAirgapCmd())
-	cmd.AddCommand(api.NewAPICmd())
-	cmd.AddCommand(backup.NewBackupCmd())
-	cmd.AddCommand(controller.NewControllerCmd())
-	cmd.AddCommand(ctr.NewCtrCommand())
-	cmd.AddCommand(configcmd.NewConfigCmd())
-	cmd.AddCommand(etcd.NewEtcdCmd())
-	cmd.AddCommand(install.NewInstallCmd())
-	cmd.AddCommand(kubeconfig.NewKubeConfigCmd())
-	cmd.AddCommand(kubectl.NewK0sKubectlCmd())
-	cmd.AddCommand(reset.NewResetCmd())
-	cmd.AddCommand(restore.NewRestoreCmd())
-	cmd.AddCommand(start.NewStartCmd())
-	cmd.AddCommand(status.NewStatusCmd())
-	cmd.AddCommand(stop.NewStopCmd())
-	cmd.AddCommand(sysinfo.NewSysinfoCmd())
-	cmd.AddCommand(token.NewTokenCmd())
-	cmd.AddCommand(validate.NewValidateCmd()) // hidden+deprecated
-	cmd.AddCommand(version.NewVersionCmd())
-	cmd.AddCommand(worker.NewWorkerCmd())
+	cmd.AddCommand(airgap.NewAirgapCmd(opts))
+	cmd.AddCommand(api.NewAPICmd(opts))
+	cmd.AddCommand(backup.NewBackupCmd(opts))
+	cmd.AddCommand(controller.NewControllerCmd(opts))
+	cmd.AddCommand(ctr.NewCtrCommand(opts))
+	cmd.AddCommand(configcmd.NewConfigCmd(opts))
+	cmd.AddCommand(etcd.NewEtcdCmd(opts))
+	cmd.AddCommand(install.NewInstallCmd(opts))
+	cmd.AddCommand(kubeconfig.NewKubeConfigCmd(opts))
+	cmd.AddCommand(kubectl.NewK0sKubectlCmd(opts))
+	cmd.AddCommand(reset.NewResetCmd(opts))
+	cmd.AddCommand(restore.NewRestoreCmd(opts))
+	cmd.AddCommand(start.NewStartCmd(opts))
+	cmd.AddCommand(status.NewStatusCmd(opts))
+	cmd.AddCommand(stop.NewStopCmd(opts))
+	cmd.AddCommand(sysinfo.NewSysinfoCmd(opts))
+	cmd.AddCommand(token.NewTokenCmd(opts))
+	cmd.AddCommand(validate.NewValidateCmd(opts)) // hidden+deprecated
+	cmd.AddCommand(version.NewVersionCmd(opts))
+	cmd.AddCommand(worker.NewWorkerCmd(opts))
 
-	cmd.AddCommand(newCompletionCmd())
-	cmd.AddCommand(newDefaultConfigCmd()) // hidden+deprecated
-	cmd.AddCommand(newDocsCmd())
+	cmd.AddCommand(newCompletionCmd(opts))
+	cmd.AddCommand(newDefaultConfigCmd(opts)) // hidden+deprecated
+	cmd.AddCommand(newDocsCmd(opts))
 
 	cmd.DisableAutoGenTag = true
 	longDesc = "k0s - The zero friction Kubernetes - https://k0sproject.io"
@@ -112,7 +112,7 @@ func NewRootCmd() *cobra.Command {
 	return cmd
 }
 
-func newDocsCmd() *cobra.Command {
+func newDocsCmd(opts *config.CLIOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:       "docs <markdown|man>",
 		Short:     "Generate k0s command documentation",
@@ -121,24 +121,24 @@ func newDocsCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			switch args[0] {
 			case "markdown":
-				return doc.GenMarkdownTree(NewRootCmd(), "./docs/cli")
+				return doc.GenMarkdownTree(NewRootCmd(opts), "./docs/cli")
 			case "man":
-				return doc.GenManTree(NewRootCmd(), &doc.GenManHeader{Title: "k0s", Section: "1"}, "./man")
+				return doc.GenManTree(NewRootCmd(opts), &doc.GenManHeader{Title: "k0s", Section: "1"}, "./man")
 			}
 			return fmt.Errorf("invalid format")
 		},
 	}
 }
 
-func newDefaultConfigCmd() *cobra.Command {
-	cmd := configcmd.NewCreateCmd()
+func newDefaultConfigCmd(opts *config.CLIOptions) *cobra.Command {
+	cmd := configcmd.NewCreateCmd(opts)
 	cmd.Hidden = true
 	cmd.Deprecated = "use 'k0s config create' instead"
 	cmd.Use = "default-config"
 	return cmd
 }
 
-func newCompletionCmd() *cobra.Command {
+func newCompletionCmd(opts *config.CLIOptions) *cobra.Command {
 	return &cobra.Command{
 		Use:   "completion <bash|zsh|fish|powershell>",
 		Short: "Generate completion script",
@@ -191,7 +191,7 @@ $ k0s completion fish > ~/.config/fish/completions/k0s.fish
 }
 
 func Execute() {
-	if err := NewRootCmd().Execute(); err != nil {
+	if err := NewRootCmd(config.DefaultCLIOptions()).Execute(); err != nil {
 		os.Exit(1)
 	}
 }

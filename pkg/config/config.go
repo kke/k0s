@@ -61,8 +61,7 @@ type ClientConfigLoadingRules struct {
 	// this parameter is mainly used for testing purposes, to override the default location on local dev system
 	RuntimeConfigPath string
 
-	// K0sVars is needed for fetching the right config from the API
-	K0sVars constant.CfgVars
+	Opts *CLIOptions
 }
 
 func (rules *ClientConfigLoadingRules) BootstrapConfig() (*v1beta1.ClusterConfig, error) {
@@ -73,7 +72,7 @@ func (rules *ClientConfigLoadingRules) BootstrapConfig() (*v1beta1.ClusterConfig
 func (rules *ClientConfigLoadingRules) ClusterConfig() (*v1beta1.ClusterConfig, error) {
 	if rules.APIClient == nil {
 		// generate a kubernetes client from AdminKubeConfigPath
-		config, err := clientcmd.BuildConfigFromFlags("", K0sVars.AdminKubeConfigPath)
+		config, err := clientcmd.BuildConfigFromFlags("", rules.Opts.K0sVars().AdminKubeConfigPath)
 		if err != nil {
 			return nil, fmt.Errorf("can't read kubeconfig: %v", err)
 		}
@@ -88,13 +87,13 @@ func (rules *ClientConfigLoadingRules) ClusterConfig() (*v1beta1.ClusterConfig, 
 }
 
 func (rules *ClientConfigLoadingRules) IsAPIConfig() bool {
-	return controllerOpts.EnableDynamicConfig
+	return rules.Opts.EnableDynamicConfig
 }
 
 func (rules *ClientConfigLoadingRules) IsDefaultConfig() bool {
 	// if no custom-value is provided as a config file, and no config-file exists in the default location
 	// we assume we need to generate configuration defaults
-	return CfgFile == constant.K0sConfigPathDefault && !file.Exists(constant.K0sConfigPathDefault)
+	return rules.Opts.CfgFile == constant.K0sConfigPathDefault && !file.Exists(constant.K0sConfigPathDefault)
 }
 
 func (rules *ClientConfigLoadingRules) Load() (*v1beta1.ClusterConfig, error) {

@@ -48,7 +48,7 @@ func (c CalicoInstaller) Stop() error {
 }
 
 type KubeProxy struct {
-	K0sVars   constant.CfgVars
+	K0sVars   *constant.CfgVars
 	CIDRRange string
 	LogLevel  string
 }

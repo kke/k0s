@@ -53,7 +53,7 @@ import (
 type Kubelet struct {
 	CRISocket           string
 	EnableCloudProvider bool
-	K0sVars             constant.CfgVars
+	K0sVars             *constant.CfgVars
 	Kubeconfig          string
 	Configuration       kubeletv1beta1.KubeletConfiguration
 	StaticPods          StaticPods

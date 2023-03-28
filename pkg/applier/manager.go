@@ -34,7 +34,7 @@ import (
 
 // Manager is the Component interface wrapper for Applier
 type Manager struct {
-	K0sVars           constant.CfgVars
+	K0sVars           *constant.CfgVars
 	KubeClientFactory kubeutil.ClientFactoryInterface
 
 	// client               kubernetes.Interface

@@ -64,7 +64,7 @@ func (h *kubectlPluginHandler) Execute(executablePath string, cmdArgs, environme
 	return h.DefaultPluginHandler.Execute(executablePath, cmdArgs, environment)
 }
 
-func NewK0sKubectlCmd() *cobra.Command {
+func NewK0sKubectlCmd(opts *config.CLIOptions) *cobra.Command {
 	_ = pflag.CommandLine.MarkHidden("log-flush-frequency")
 	_ = pflag.CommandLine.MarkHidden("version")
 
@@ -96,7 +96,7 @@ func NewK0sKubectlCmd() *cobra.Command {
 	// Get handle on the original kubectl prerun so we can call it later
 	originalPreRunE := cmd.PersistentPreRunE
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if err := fallbackToK0sKubeconfig(cmd); err != nil {
+		if err := fallbackToK0sKubeconfig(cmd, opts); err != nil {
 			return err
 		}
 
@@ -107,7 +107,7 @@ func NewK0sKubectlCmd() *cobra.Command {
 		return originalPreRunE(cmd, args)
 	}
 
-	cmd.PersistentFlags().AddFlagSet(config.GetKubeCtlFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetKubeCtlFlagSet(opts))
 
 	originalRun := cmd.Run
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
@@ -129,7 +129,7 @@ func NewK0sKubectlCmd() *cobra.Command {
 	return cmd
 }
 
-func fallbackToK0sKubeconfig(cmd *cobra.Command) error {
+func fallbackToK0sKubeconfig(cmd *cobra.Command, opts *config.CLIOptions) error {
 	kubeconfigFlag := cmd.Flags().Lookup("kubeconfig")
 	if kubeconfigFlag == nil {
 		return fmt.Errorf("kubeconfig flag not found")
@@ -145,7 +145,7 @@ func fallbackToK0sKubeconfig(cmd *cobra.Command) error {
 		return nil
 	}
 
-	kubeconfig := config.GetCmdOpts().K0sVars.AdminKubeConfigPath
+	kubeconfig := opts.K0sVars().AdminKubeConfigPath
 
 	// verify that k0s's kubeconfig is readable before pushing it to the env
 	if _, err := os.Stat(kubeconfig); err != nil {

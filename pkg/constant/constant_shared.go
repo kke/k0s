@@ -173,7 +173,6 @@ type CfgVars struct {
 	RunDir                     string // location of supervised pid files and sockets
 	KonnectivityKubeConfigPath string // location for konnectivity kubeconfig
 	OCIBundleDir               string // location for OCI bundles
-	DefaultStorageType         string // Default backend storage
 
 	// Helm config
 	HelmHome             string
@@ -182,7 +181,7 @@ type CfgVars struct {
 }
 
 // GetConfig returns the pointer to a Config struct
-func GetConfig(dataDir string) CfgVars {
+func GetConfig(dataDir string) *CfgVars {
 	if dataDir == "" {
 		switch runtime.GOOS {
 		case "windows":
@@ -208,7 +207,7 @@ func GetConfig(dataDir string) CfgVars {
 	winCertDir := WinDataDirDefault + "\\pki" // hacky but we need it to be windows style even on linux machine
 	helmHome := formatPath(dataDir, "helmhome")
 
-	return CfgVars{
+	return &CfgVars{
 		AdminKubeConfigPath:        formatPath(certDir, "admin.conf"),
 		BinDir:                     formatPath(dataDir, "bin"),
 		OCIBundleDir:               formatPath(dataDir, "images"),

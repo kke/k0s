@@ -37,7 +37,7 @@ func GetControllerUsers(clusterConfig *v1beta1.ClusterConfig) []string {
 }
 
 // CreateControllerUsers accepts a cluster config, and cfgVars and creates controller users accordingly
-func CreateControllerUsers(clusterConfig *v1beta1.ClusterConfig, k0sVars constant.CfgVars) error {
+func CreateControllerUsers(clusterConfig *v1beta1.ClusterConfig, k0sVars *constant.CfgVars) error {
 	users := getUserList(*clusterConfig.Spec.Install.SystemUsers)
 	var messages []string
 	for _, v := range users {

@@ -27,17 +27,16 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func tokenInvalidateCmd() *cobra.Command {
+func tokenInvalidateCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "invalidate",
 		Short:   "Invalidates existing join token",
 		Example: "k0s token invalidate xyz123",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
 			if len(args) < 1 {
 				return errors.New("invalidate requires at least one token ID to invalidate")
 			}
-			manager, err := token.NewManager(filepath.Join(c.K0sVars.AdminKubeConfigPath))
+			manager, err := token.NewManager(filepath.Join(opts.K0sVars().AdminKubeConfigPath))
 			if err != nil {
 				return err
 			}
@@ -52,6 +51,6 @@ func tokenInvalidateCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

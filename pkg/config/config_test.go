@@ -63,12 +63,15 @@ spec:
 
 // Test using config from a yaml file
 func TestGetConfigFromFile(t *testing.T) {
-	CfgFile = writeConfigFile(t, fileYaml)
+	opts := DefaultCLIOptions()
+	opts.DataDir = t.TempDir()
+	opts.CfgFile = writeConfigFile(t, fileYaml)
 
 	loadingRules := ClientConfigLoadingRules{
 		RuntimeConfigPath: nonExistentPath(t),
+		Opts:              opts,
 	}
-	err := loadingRules.InitRuntimeConfig(constant.GetConfig(t.TempDir()))
+	err := loadingRules.InitRuntimeConfig(opts)
 	if err != nil {
 		t.Fatalf("failed to initialize k0s config: %s", err.Error())
 	}
@@ -110,12 +113,15 @@ spec:
         - http://etcd0:2379
         etcdPrefix: k0s-tenant`
 
-	CfgFile = writeConfigFile(t, yamlData)
+	opts := DefaultCLIOptions()
+	opts.DataDir = t.TempDir()
+	opts.CfgFile = writeConfigFile(t, yamlData)
 
 	loadingRules := ClientConfigLoadingRules{
 		RuntimeConfigPath: nonExistentPath(t),
+		Opts:              opts,
 	}
-	err := loadingRules.InitRuntimeConfig(constant.GetConfig(t.TempDir()))
+	err := loadingRules.InitRuntimeConfig(opts)
 	if err != nil {
 		t.Fatalf("failed to initialize k0s config: %s", err.Error())
 	}
@@ -147,11 +153,15 @@ spec:
 }
 
 func TestConfigFromDefaults(t *testing.T) {
-	CfgFile = ""
+	opts := DefaultCLIOptions()
+	opts.DataDir = t.TempDir()
+	opts.CfgFile = ""
+
 	loadingRules := ClientConfigLoadingRules{
 		RuntimeConfigPath: nonExistentPath(t),
+		Opts:              opts,
 	}
-	err := loadingRules.InitRuntimeConfig(constant.GetConfig(t.TempDir()))
+	err := loadingRules.InitRuntimeConfig(opts)
 	if err != nil {
 		t.Fatalf("failed to initialize k0s config: %s", err.Error())
 	}
@@ -185,17 +195,20 @@ func TestConfigFromDefaults(t *testing.T) {
 // Test using node-config from a file when API config is enabled
 func TestNodeConfigWithAPIConfig(t *testing.T) {
 	cfgFilePath := writeConfigFile(t, fileYaml)
-	CfgFile = cfgFilePath
+	opts := DefaultCLIOptions()
+	opts.DataDir = t.TempDir()
+	opts.CfgFile = cfgFilePath
 
 	// if API config is enabled, Nodeconfig will be stripped of any cluster-wide-config settings
-	controllerOpts.EnableDynamicConfig = true
+	opts.ControllerOptions.EnableDynamicConfig = true
 
 	loadingRules := ClientConfigLoadingRules{
 		RuntimeConfigPath: nonExistentPath(t),
 		Nodeconfig:        true,
+		Opts:              opts,
 	}
 
-	err := loadingRules.InitRuntimeConfig(constant.GetConfig(t.TempDir()))
+	err := loadingRules.InitRuntimeConfig(opts)
 	if err != nil {
 		t.Fatalf("failed to initialize k0s config: %s", err.Error())
 	}
@@ -231,17 +244,19 @@ spec:
   api:
     address: 1.2.3.4`
 
-	CfgFile = writeConfigFile(t, yamlData)
+	tempDir := t.TempDir()
+	opts := DefaultCLIOptions()
+	opts.ControllerOptions.SingleNode = true
+	opts.DataDir = tempDir
+	opts.CfgFile = writeConfigFile(t, yamlData)
 
 	loadingRules := ClientConfigLoadingRules{
 		RuntimeConfigPath: nonExistentPath(t),
 		Nodeconfig:        true,
+		Opts:              opts,
 	}
-	tempDir := t.TempDir()
-	k0sVars := constant.GetConfig(tempDir)
-	k0sVars.DefaultStorageType = "kine"
 
-	err := loadingRules.InitRuntimeConfig(k0sVars)
+	err := loadingRules.InitRuntimeConfig(opts)
 	if err != nil {
 		t.Fatalf("failed to initialize k0s config: %s", err.Error())
 	}
@@ -273,16 +288,17 @@ spec:
   storage:
     type: etcd`
 
-	CfgFile = writeConfigFile(t, yamlData)
+	opts := DefaultCLIOptions()
+	opts.ControllerOptions.SingleNode = true
+	opts.DataDir = t.TempDir()
+	opts.CfgFile = writeConfigFile(t, yamlData)
 
 	loadingRules := ClientConfigLoadingRules{
 		RuntimeConfigPath: nonExistentPath(t),
 		Nodeconfig:        true,
 	}
-	k0sVars := constant.GetConfig(t.TempDir())
-	k0sVars.DefaultStorageType = "kine"
 
-	err := loadingRules.InitRuntimeConfig(k0sVars)
+	err := loadingRules.InitRuntimeConfig(opts)
 	if err != nil {
 		t.Fatalf("failed to initialize k0s config: %s", err.Error())
 	}
@@ -298,7 +314,7 @@ spec:
 		name     string
 		got      string
 		expected string
-	}{{"Storage_Type", cfg.Spec.Storage.Type, "etcd"}} // config file storage type trumps k0sVars.DefaultStorageType
+	}{{"Storage_Type", cfg.Spec.Storage.Type, "etcd"}} // config file storage type trumps default
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("%s eq %s", tc.name, tc.expected), func(t *testing.T) {
@@ -312,9 +328,11 @@ spec:
 // when a component requests an API config,
 // the merged node and cluster config should be returned
 func TestAPIConfig(t *testing.T) {
-	CfgFile = writeConfigFile(t, fileYaml)
+	opts := DefaultCLIOptions()
+	opts.DataDir = t.TempDir()
+	opts.CfgFile = writeConfigFile(t, fileYaml)
 
-	controllerOpts.EnableDynamicConfig = true
+	opts.ControllerOptions.EnableDynamicConfig = true
 	// create the API config using a fake client
 	client := fake.NewSimpleClientset()
 
@@ -324,7 +342,7 @@ func TestAPIConfig(t *testing.T) {
 		RuntimeConfigPath: nonExistentPath(t),
 		APIClient:         client.K0sV1beta1(),
 	}
-	err := loadingRules.InitRuntimeConfig(constant.GetConfig(t.TempDir()))
+	err := loadingRules.InitRuntimeConfig(opts)
 	if err != nil {
 		t.Fatalf("failed to initialize k0s config: %s", err.Error())
 	}

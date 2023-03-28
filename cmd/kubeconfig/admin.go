@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func kubeConfigAdminCmd() *cobra.Command {
+func kubeConfigAdminCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "admin",
 		Short: "Display Admin's Kubeconfig file",
@@ -35,18 +35,17 @@ func kubeConfigAdminCmd() *cobra.Command {
 	$ export KUBECONFIG=~/.kube/config
 	$ kubectl get nodes`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			c := config.GetCmdOpts()
-			content, err := os.ReadFile(c.K0sVars.AdminKubeConfigPath)
+			content, err := os.ReadFile(opts.K0sVars().AdminKubeConfigPath)
 			if err != nil {
 				return fmt.Errorf("failed to read admin config, check if the control plane is initialized on this node: %w", err)
 			}
 
-			clusterAPIURL := c.NodeConfig.Spec.API.APIAddressURL()
+			clusterAPIURL := opts.NodeConfig().Spec.API.APIAddressURL()
 			newContent := strings.Replace(string(content), "https://localhost:6443", clusterAPIURL, -1)
 			_, err = cmd.OutOrStdout().Write([]byte(newContent))
 			return err
 		},
 	}
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

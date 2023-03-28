@@ -29,9 +29,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type command config.CLIOptions
+type command struct {
+	config.CLIOptions
+}
 
-func NewResetCmd() *cobra.Command {
+func NewResetCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "reset",
 		Short: "Uninstall k0s. Must be run as root (or with sudo)",
@@ -39,33 +41,32 @@ func NewResetCmd() *cobra.Command {
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("currently not supported on windows")
 			}
-			c := command(config.GetCmdOpts())
+			c := command{*opts}
 			return c.reset()
 		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			c := command(config.GetCmdOpts())
-			return config.PreRunValidateConfig(c.K0sVars)
+			return config.PreRunValidateConfig(opts)
 		},
 	}
 	cmd.SilenceUsage = true
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
-	cmd.Flags().AddFlagSet(config.GetCriSocketFlag())
-	cmd.Flags().AddFlagSet(config.FileInputFlag())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
+	cmd.Flags().AddFlagSet(config.GetCriSocketFlag(opts))
+	cmd.Flags().AddFlagSet(config.FileInputFlag(opts))
 	return cmd
 }
 
-func (c *command) reset() error {
+func (c command) reset() error {
 	if os.Geteuid() != 0 {
 		logrus.Fatal("this command must be run as root!")
 	}
 
-	k0sStatus, _ := status.GetStatusInfo(config.StatusSocket)
+	k0sStatus, _ := status.GetStatusInfo(c.StatusSocket)
 	if k0sStatus != nil && k0sStatus.Pid != 0 {
 		logrus.Fatal("k0s seems to be running! please stop k0s before reset.")
 	}
 
 	// Get Cleanup Config
-	cfg, err := cleanup.NewConfig(c.K0sVars, c.CfgFile, c.WorkerOptions.CriSocket)
+	cfg, err := cleanup.NewConfig(&c.CLIOptions, c.CfgFile, c.WorkerOptions.CriSocket)
 	if err != nil {
 		return fmt.Errorf("failed to configure cleanup: %v", err)
 	}

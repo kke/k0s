@@ -22,17 +22,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func NewKubeConfigCmd() *cobra.Command {
+func NewKubeConfigCmd(opts *config.CLIOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "kubeconfig [command]",
 		Short: "Create a kubeconfig file for a specified user",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return cmd.Usage()
-		},
 	}
-	cmd.SilenceUsage = true
-	cmd.AddCommand(kubeconfigCreateCmd())
-	cmd.AddCommand(kubeConfigAdminCmd())
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.AddCommand(kubeconfigCreateCmd(opts))
+	cmd.AddCommand(kubeConfigAdminCmd(opts))
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }

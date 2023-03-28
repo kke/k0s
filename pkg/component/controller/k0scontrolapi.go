@@ -29,7 +29,7 @@ import (
 // K0SControlAPI implements the k0s control API component
 type K0SControlAPI struct {
 	ConfigPath string
-	K0sVars    constant.CfgVars
+	K0sVars    *constant.CfgVars
 	supervisor supervisor.Supervisor
 }
 

@@ -26,7 +26,7 @@ import (
 	"github.com/k0sproject/k0s/pkg/config"
 )
 
-func NewCreateCmd() *cobra.Command {
+func NewCreateCmd(opts *config.CLIOptions) *cobra.Command {
 	var includeImages bool
 
 	cmd := &cobra.Command{
@@ -47,6 +47,6 @@ func NewCreateCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&includeImages, "include-images", false, "include the default images in the output")
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet(opts))
 	return cmd
 }
