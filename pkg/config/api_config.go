@@ -22,10 +22,11 @@ import (
 	"time"
 
 	"github.com/avast/retry-go"
-	"github.com/imdario/mergo"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/tools/clientcmd"
 
+	cfgClient "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset"
 	k0sv1beta1 "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/constant"
@@ -36,66 +37,52 @@ var (
 	getOpts      = v1.GetOptions{TypeMeta: resourceType}
 )
 
-// run a config-request from the API and wait until the API is up
-func (rules *ClientConfigLoadingRules) getConfigFromAPI(client k0sv1beta1.K0sV1beta1Interface) (*v1beta1.ClusterConfig, error) {
-
+func FromAPI(client k0sv1beta1.K0sV1beta1Interface) (*v1beta1.ClusterConfig, error) {
 	var cfg *v1beta1.ClusterConfig
 	var err error
-	ctx, cancelFunction := context.WithTimeout(context.Background(), 120*time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	// clear up context after timeout
-	defer cancelFunction()
+	defer cancel()
 
 	err = retry.Do(func() error {
 		logrus.Debug("fetching cluster-config from API...")
-		cfg, err = rules.configRequest(client)
+		cfg, err = configRequest(client)
 		if err != nil {
 			return err
 		}
 		return nil
 	}, retry.Context(ctx))
+
 	if err != nil {
-		return nil, fmt.Errorf("timed out waiting for API to return cluster-config")
+		return nil, fmt.Errorf("timed out waiting for API to return cluster-config: %w", err)
 	}
+
 	return cfg, nil
 }
 
-// when API config is enabled, but only node config is needed (for bootstrapping commands)
-func (rules *ClientConfigLoadingRules) fetchNodeConfig() (*v1beta1.ClusterConfig, error) {
-	cfg, err := rules.readRuntimeConfig()
-	if err != nil {
-		logrus.Errorf("failed to read config from file: %v", err)
-		return nil, err
-	}
-	return cfg.GetBootstrappingConfig(cfg.Spec.Storage), nil
-}
-
-// when API config is enabled, but only node config is needed (for bootstrapping commands)
-func (rules *ClientConfigLoadingRules) mergeNodeAndClusterconfig(nodeConfig *v1beta1.ClusterConfig, apiConfig *v1beta1.ClusterConfig) (*v1beta1.ClusterConfig, error) {
-	clusterConfig := &v1beta1.ClusterConfig{}
-
-	// API config takes precedence over Node config. This is why we are merging it first
-	err := mergo.Merge(clusterConfig, apiConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mergo.Merge(clusterConfig, nodeConfig.GetBootstrappingConfig(nodeConfig.Spec.Storage), mergo.WithOverride)
-	if err != nil {
-		return nil, err
-	}
-
-	return clusterConfig, nil
-}
-
-// fetch cluster-config from API
-func (rules *ClientConfigLoadingRules) configRequest(client k0sv1beta1.K0sV1beta1Interface) (clusterConfig *v1beta1.ClusterConfig, err error) {
+func configRequest(client k0sv1beta1.K0sV1beta1Interface) (clusterConfig *v1beta1.ClusterConfig, err error) {
 	clusterConfigs := client.ClusterConfigs(constant.ClusterConfigNamespace)
-	ctxWithTimeout, cancelFunction := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
-	defer cancelFunction()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10)*time.Second)
+	defer cancel()
 
-	cfg, err := clusterConfigs.Get(ctxWithTimeout, "k0s", getOpts)
+	cfg, err := clusterConfigs.Get(ctx, "k0s", getOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cluster-config from API: %v", err)
 	}
 	return cfg, nil
+}
+
+func apiClient(vars constant.CfgVars) (k0sv1beta1.K0sV1beta1Interface, error) {
+	// generate a kubernetes client from AdminKubeConfigPath
+	config, err := clientcmd.BuildConfigFromFlags("", vars.AdminKubeConfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("can't read kubeconfig: %w", err)
+	}
+	client, err := cfgClient.NewForConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("can't create kubernetes typed client for cluster config: %w", err)
+	}
+
+	return client.K0sV1beta1(), nil
 }

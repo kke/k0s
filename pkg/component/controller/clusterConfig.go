@@ -27,7 +27,6 @@ import (
 	"github.com/k0sproject/k0s/pkg/component/controller/clusterconfig"
 	"github.com/k0sproject/k0s/pkg/component/controller/leaderelector"
 	"github.com/k0sproject/k0s/pkg/component/manager"
-	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/constant"
 	kubeutil "github.com/k0sproject/k0s/pkg/kubernetes"
 
@@ -42,7 +41,6 @@ import (
 
 // ClusterConfigReconciler reconciles a ClusterConfig object
 type ClusterConfigReconciler struct {
-	YamlConfig        *v1beta1.ClusterConfig
 	ComponentManager  *manager.Manager
 	KubeClientFactory kubeutil.ClientFactoryInterface
 
@@ -54,12 +52,6 @@ type ClusterConfigReconciler struct {
 
 // NewClusterConfigReconciler creates a new clusterConfig reconciler
 func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars constant.CfgVars, mgr *manager.Manager, kubeClientFactory kubeutil.ClientFactoryInterface, configSource clusterconfig.ConfigSource) (*ClusterConfigReconciler, error) {
-	loadingRules := config.ClientConfigLoadingRules{K0sVars: k0sVars}
-	cfg, err := loadingRules.ParseRuntimeConfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get config: %v", err)
-	}
-
 	configClient, err := kubeClientFactory.GetConfigClient()
 	if err != nil {
 		return nil, err
@@ -67,7 +59,6 @@ func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars c
 
 	return &ClusterConfigReconciler{
 		ComponentManager:  mgr,
-		YamlConfig:        cfg,
 		KubeClientFactory: kubeClientFactory,
 		leaderElector:     leaderElector,
 		log:               logrus.WithFields(logrus.Fields{"component": "clusterConfig-reconciler"}),
@@ -204,7 +195,7 @@ func (r *ClusterConfigReconciler) clusterConfigExists(ctx context.Context) error
 func (r *ClusterConfigReconciler) createClusterConfig(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	clusterWideConfig := r.YamlConfig.GetClusterWideConfig().StripDefaults().CRValidator()
+	clusterWideConfig := r.configSource.InitialConfig().GetClusterWideConfig().StripDefaults().CRValidator()
 	_, err := r.configClient.Create(ctx, clusterWideConfig, metav1.CreateOptions{})
 	return err
 }

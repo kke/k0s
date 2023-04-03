@@ -32,18 +32,20 @@ import (
 var _ ConfigSource = (*apiConfigSource)(nil)
 
 type apiConfigSource struct {
-	configClient k0sclient.ClusterConfigInterface
-	resultChan   chan *v1beta1.ClusterConfig
+	configClient  k0sclient.ClusterConfigInterface
+	resultChan    chan *v1beta1.ClusterConfig
+	initialConfig *v1beta1.ClusterConfig
 }
 
-func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface) (ConfigSource, error) {
+func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface, initialConfig *v1beta1.ClusterConfig) (ConfigSource, error) {
 	configClient, err := kubeClientFactory.GetConfigClient()
 	if err != nil {
 		return nil, err
 	}
 	a := &apiConfigSource{
-		configClient: configClient,
-		resultChan:   make(chan *v1beta1.ClusterConfig, 1),
+		configClient:  configClient,
+		resultChan:    make(chan *v1beta1.ClusterConfig, 1),
+		initialConfig: initialConfig,
 	}
 	return a, nil
 }
@@ -100,4 +102,8 @@ func (a apiConfigSource) Stop() {
 
 func (a *apiConfigSource) NeedToStoreInitialConfig() bool {
 	return true
+}
+
+func (a *apiConfigSource) InitialConfig() *v1beta1.ClusterConfig {
+	return a.initialConfig
 }

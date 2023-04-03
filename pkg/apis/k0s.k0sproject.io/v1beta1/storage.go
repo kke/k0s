@@ -62,6 +62,19 @@ func DefaultStorageSpec() *StorageSpec {
 	}
 }
 
+// EtcdStorageSpec returns the DefaultStorageSpec which for now is for etcd
+func EtcdStorageSpec() *StorageSpec {
+	return DefaultStorageSpec()
+}
+
+// KineStorageSpec returns a kine storage spec based on the given datadir
+func KineStorageSpec(datadir string) *StorageSpec {
+	return &StorageSpec{
+		Type: KineStorageType,
+		Kine: DefaultKineConfig(datadir),
+	}
+}
+
 // IsJoinable returns true only if the storage config is such that another controller can join the cluster
 func (s *StorageSpec) IsJoinable() bool {
 	if s.Type == EtcdStorageType {

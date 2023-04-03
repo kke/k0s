@@ -42,7 +42,7 @@ func tokenListCmd() *cobra.Command {
 			return err
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
+			c := config.GetCmdOpts(cmd)
 			manager, err := token.NewManager(filepath.Join(c.K0sVars.AdminKubeConfigPath))
 			if err != nil {
 				return err

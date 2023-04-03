@@ -17,7 +17,6 @@ limitations under the License.
 package cleanup
 
 import (
-	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/install"
 	"github.com/sirupsen/logrus"
 )
@@ -33,12 +32,10 @@ func (u *users) Name() string {
 
 // Run removes all controller users that are present on the host
 func (u *users) Run() error {
-	loadingRules := config.ClientConfigLoadingRules{Nodeconfig: true, K0sVars: u.Config.k0sVars}
-	cfg, err := loadingRules.Load()
-	if err != nil {
-		logrus.Errorf("failed to get cluster setup: %v", err)
+	if u.Config.bootstrapConfig == nil {
+		return nil
 	}
-	if err := install.DeleteControllerUsers(cfg); err != nil {
+	if err := install.DeleteControllerUsers(u.Config.bootstrapConfig); err != nil {
 		// don't fail, just notify on delete error
 		logrus.Warnf("failed to delete controller users: %v", err)
 	}

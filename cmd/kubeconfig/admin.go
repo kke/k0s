@@ -35,13 +35,13 @@ func kubeConfigAdminCmd() *cobra.Command {
 	$ export KUBECONFIG=~/.kube/config
 	$ kubectl get nodes`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			c := config.GetCmdOpts()
+			c := config.GetCmdOpts(cmd)
 			content, err := os.ReadFile(c.K0sVars.AdminKubeConfigPath)
 			if err != nil {
 				return fmt.Errorf("failed to read admin config, check if the control plane is initialized on this node: %w", err)
 			}
 
-			clusterAPIURL := c.NodeConfig.Spec.API.APIAddressURL()
+			clusterAPIURL := c.BootstrapConfig().Spec.API.APIAddressURL()
 			newContent := strings.Replace(string(content), "https://localhost:6443", clusterAPIURL, -1)
 			_, err = cmd.OutOrStdout().Write([]byte(newContent))
 			return err

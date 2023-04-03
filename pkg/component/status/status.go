@@ -27,14 +27,20 @@ import (
 	"time"
 
 	"github.com/k0sproject/k0s/internal/pkg/dir"
+	cfgClient "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset"
+	k0sv1beta1 "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
+
 	"github.com/k0sproject/k0s/pkg/autopilot/client"
 	"github.com/k0sproject/k0s/pkg/component/manager"
 	"github.com/k0sproject/k0s/pkg/component/prober"
+	"github.com/k0sproject/k0s/pkg/config"
+
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Stater interface {
@@ -124,8 +130,9 @@ func (s *Status) Stop() error {
 }
 
 type statusHandler struct {
-	Status *Status
-	client kubernetes.Interface
+	Status       *Status
+	client       kubernetes.Interface
+	configClient k0sv1beta1.K0sV1beta1Interface
 }
 
 // ServerHTTP implementation of handler interface
@@ -149,10 +156,28 @@ func (sh *statusHandler) getCurrentStatus(ctx context.Context) K0sStatus {
 		return status
 	}
 
+	if sh.configClient == nil {
+		if config, err := clientcmd.BuildConfigFromFlags("", status.K0sVars.AdminKubeConfigPath); err == nil {
+			if client, err := cfgClient.NewForConfig(config); err == nil {
+				sh.configClient = client.K0sV1beta1()
+			}
+		}
+	}
+
+	if sh.configClient != nil {
+		runtimeConfig, err := config.FromAPI(sh.configClient)
+		if err == nil {
+			status.ClusterConfig = runtimeConfig
+			status.BootstrapConfig = status.BootstrapConfig.GetBootstrappingConfig()
+		} else {
+			status.ClusterConfig = nil
+		}
+	}
+
 	if sh.client == nil {
 		kubeClient, err := sh.buildWorkerSideKubeAPIClient(ctx)
 		if err != nil {
-			status.WorkerToAPIConnectionStatus.Message = fmt.Errorf("failed to create kube-api client required for kube-api status reports, probably kubelet failed to init: %v", err).Error()
+			status.WorkerToAPIConnectionStatus.Message = fmt.Sprintf("failed to create kube-api client required for kube-api status reports, probably kubelet failed to init: %v", err)
 			return status
 		}
 		sh.client = kubeClient
@@ -163,6 +188,7 @@ func (sh *statusHandler) getCurrentStatus(ctx context.Context) K0sStatus {
 		return status
 	}
 	status.WorkerToAPIConnectionStatus.Success = true
+
 	return status
 }
 

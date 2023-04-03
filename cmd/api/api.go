@@ -71,7 +71,7 @@ func NewAPICmd() *cobra.Command {
 			return config.CallParentPersistentPreRun(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return (&command{CLIOptions: config.GetCmdOpts()}).start()
+			return (&command{CLIOptions: config.GetCmdOpts(cmd)}).start()
 		},
 	}
 	cmd.SilenceUsage = true
@@ -88,7 +88,8 @@ func (c *command) start() (err error) {
 
 	prefix := "/v1beta1"
 	mux := http.NewServeMux()
-	storage := c.NodeConfig.Spec.Storage
+	bootstrapConfig := c.BootstrapConfig()
+	storage := bootstrapConfig.Spec.Storage
 
 	if storage.Type == v1beta1.EtcdStorageType && !storage.Etcd.IsExternalClusterUsed() {
 		// Only mount the etcd handler if we're running on internal etcd storage
@@ -106,7 +107,7 @@ func (c *command) start() (err error) {
 
 	srv := &http.Server{
 		Handler: mux,
-		Addr:    fmt.Sprintf(":%d", c.NodeConfig.Spec.API.K0sAPIPort),
+		Addr:    fmt.Sprintf(":%d", bootstrapConfig.Spec.API.K0sAPIPort),
 		TLSConfig: &tls.Config{
 			MinVersion:   tls.VersionTLS12,
 			CipherSuites: constant.AllowedTLS12CipherSuiteIDs,
@@ -227,7 +228,7 @@ users:
 				Token     string
 				Namespace string
 			}{
-				Server:    c.NodeConfig.Spec.API.APIAddressURL(),
+				Server:    c.BootstrapConfig().Spec.API.APIAddressURL(),
 				Ca:        base64.StdEncoding.EncodeToString(secretWithToken.Data["ca.crt"]),
 				Token:     string(secretWithToken.Data["token"]),
 				Namespace: string(secretWithToken.Data["namespace"]),

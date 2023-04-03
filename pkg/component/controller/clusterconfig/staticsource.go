@@ -51,3 +51,7 @@ func (*staticSource) Stop() {}
 func (s *staticSource) NeedToStoreInitialConfig() bool {
 	return false
 }
+
+func (s *staticSource) InitialConfig() *v1beta1.ClusterConfig {
+	return nil
+}

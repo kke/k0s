@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -70,8 +71,8 @@ type ClusterConfig struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	metav1.TypeMeta   `json:",omitempty,inline"`
 
-	Spec   *ClusterSpec        `json:"spec,omitempty"`
-	Status ClusterConfigStatus `json:"status,omitempty"`
+	Spec   *ClusterSpec         `json:"spec,omitempty"`
+	Status *ClusterConfigStatus `json:"status,omitempty"`
 }
 
 // StripDefaults returns a copy of the config where the default values a nilled out
@@ -383,8 +384,27 @@ func (c *ClusterConfig) Validate() (errs []error) {
 	return errs
 }
 
+// ValidationError returns a single error with all validation errors in one error
+func (c *ClusterConfig) ValidationError() error {
+	var messages []string
+
+	for _, err := range c.Validate() {
+		if err != nil {
+			messages = append(messages, err.Error())
+		}
+	}
+
+	if len(messages) == 0 {
+		return nil
+	}
+
+	return fmt.Errorf("validation failed:\n  - %s", strings.Join(messages, "\n  - "))
+}
+
 // GetBootstrappingConfig returns a ClusterConfig object stripped of Cluster-Wide Settings
-func (c *ClusterConfig) GetBootstrappingConfig(storageSpec *StorageSpec) *ClusterConfig {
+func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
+	storageSpec := c.Spec.Storage
+
 	var etcdConfig *EtcdConfig
 	if storageSpec.Type == EtcdStorageType {
 		etcdConfig = &EtcdConfig{

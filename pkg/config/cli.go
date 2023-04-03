@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -26,7 +27,6 @@ import (
 
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	aproot "github.com/k0sproject/k0s/pkg/autopilot/controller/root"
-	"github.com/k0sproject/k0s/pkg/component/manager"
 	"github.com/k0sproject/k0s/pkg/constant"
 	"github.com/k0sproject/k0s/pkg/k0scloudprovider"
 
@@ -37,14 +37,14 @@ import (
 )
 
 var (
-	CfgFile        string
-	DataDir        string
-	Debug          bool
-	DebugListenOn  string
-	StatusSocket   string
-	K0sVars        constant.CfgVars
+	CfgFile       string
+	DataDir       string
+	Debug         bool
+	DebugListenOn string
+	StatusSocket  string
+	Verbose       bool
+
 	workerOpts     WorkerOptions
-	Verbose        bool
 	controllerOpts ControllerOptions
 )
 
@@ -53,15 +53,51 @@ var (
 type CLIOptions struct {
 	WorkerOptions
 	ControllerOptions
-	CfgFile          string
-	NodeConfig       *v1beta1.ClusterConfig
-	Debug            bool
-	DebugListenOn    string
-	DefaultLogLevels map[string]string
-	K0sVars          constant.CfgVars
-	Logging          map[string]string // merged outcome of default log levels and cmdLoglevels
-	Verbose          bool
-	AutopilotRoot    aproot.Root
+
+	CfgFile       string
+	DataDir       string
+	Debug         bool
+	DebugListenOn string
+	StatusSocket  string
+	Verbose       bool
+
+	K0sVars constant.CfgVars
+
+	AutopilotRoot aproot.Root
+
+	initialConfig   *v1beta1.ClusterConfig
+	bootstrapConfig *v1beta1.ClusterConfig
+
+	stdin io.Reader
+}
+
+// Copy returns a deep copy of the CLIOptions struct
+// todo: this is a bit cumbersome if the fields in any of the structs change,
+// it's easy to forget to update this method.
+func (o *CLIOptions) Copy() CLIOptions {
+	var initialConfig *v1beta1.ClusterConfig
+	var bootstrapConfig *v1beta1.ClusterConfig
+	if o.initialConfig != nil {
+		initialConfig = o.initialConfig.DeepCopy()
+	}
+	if o.bootstrapConfig != nil {
+		bootstrapConfig = o.bootstrapConfig.DeepCopy()
+	}
+
+	return CLIOptions{
+		WorkerOptions:     o.WorkerOptions.Copy(),
+		ControllerOptions: o.ControllerOptions.Copy(),
+		CfgFile:           o.CfgFile,
+		DataDir:           o.DataDir,
+		Debug:             o.Debug,
+		DebugListenOn:     o.DebugListenOn,
+		StatusSocket:      o.StatusSocket,
+		Verbose:           o.Verbose,
+		K0sVars:           o.K0sVars,
+		AutopilotRoot:     o.AutopilotRoot,
+		initialConfig:     initialConfig,
+		bootstrapConfig:   bootstrapConfig,
+	}
 }
 
 // Shared controller cli flags
@@ -71,14 +107,30 @@ type ControllerOptions struct {
 	NoTaints          bool
 	DisableComponents []string
 
-	ClusterComponents               *manager.Manager
 	EnableK0sCloudProvider          bool
 	K0sCloudProviderPort            int
 	K0sCloudProviderUpdateFrequency time.Duration
-	NodeComponents                  *manager.Manager
 	EnableDynamicConfig             bool
 	EnableMetricsScraper            bool
 	KubeControllerManagerExtraArgs  string
+}
+
+func (c *ControllerOptions) Copy() ControllerOptions {
+	disableComponents := make([]string, len(c.DisableComponents))
+	copy(disableComponents, c.DisableComponents)
+
+	return ControllerOptions{
+		EnableWorker:                    c.EnableWorker,
+		SingleNode:                      c.SingleNode,
+		NoTaints:                        c.NoTaints,
+		DisableComponents:               disableComponents,
+		EnableK0sCloudProvider:          c.EnableK0sCloudProvider,
+		K0sCloudProviderPort:            c.K0sCloudProviderPort,
+		K0sCloudProviderUpdateFrequency: c.K0sCloudProviderUpdateFrequency,
+		EnableDynamicConfig:             c.EnableDynamicConfig,
+		EnableMetricsScraper:            c.EnableMetricsScraper,
+		KubeControllerManagerExtraArgs:  c.KubeControllerManagerExtraArgs,
+	}
 }
 
 // Shared worker cli flags
@@ -87,7 +139,7 @@ type WorkerOptions struct {
 	CIDRRange        string
 	CloudProvider    bool
 	ClusterDNS       string
-	CmdLogLevels     map[string]string
+	LogLevels        map[string]string
 	CriSocket        string
 	KubeletExtraArgs string
 	Labels           []string
@@ -96,6 +148,36 @@ type WorkerOptions struct {
 	TokenArg         string
 	WorkerProfile    string
 	IPTablesMode     string
+}
+
+func (w *WorkerOptions) Copy() WorkerOptions {
+	labels := make([]string, len(w.Labels))
+	taints := make([]string, len(w.Taints))
+	logLevels := make(map[string]string)
+	copy(labels, w.Labels)
+	copy(taints, w.Taints)
+
+	// Copy the values from the original map to the new map
+	for k, v := range w.LogLevels {
+		logLevels[k] = v
+	}
+
+	// Create a new instance of WorkerOptions with a new map and new slices
+	return WorkerOptions{
+		APIServer:        w.APIServer,
+		CIDRRange:        w.CIDRRange,
+		CloudProvider:    w.CloudProvider,
+		ClusterDNS:       w.ClusterDNS,
+		LogLevels:        logLevels,
+		CriSocket:        w.CriSocket,
+		KubeletExtraArgs: w.KubeletExtraArgs,
+		Labels:           labels,
+		Taints:           taints,
+		TokenFile:        w.TokenFile,
+		TokenArg:         w.TokenArg,
+		WorkerProfile:    w.WorkerProfile,
+		IPTablesMode:     w.IPTablesMode,
+	}
 }
 
 func (o *ControllerOptions) Normalize() error {
@@ -151,7 +233,7 @@ func GetPersistentFlagSet() *pflag.FlagSet {
 	flagset.BoolVarP(&Debug, "debug", "d", false, "Debug logging (default: false)")
 	flagset.BoolVarP(&Verbose, "verbose", "v", false, "Verbose logging (default: false)")
 	flagset.StringVar(&DataDir, "data-dir", "", "Data Directory for k0s (default: /var/lib/k0s). DO NOT CHANGE for an existing setup, things will break!")
-	flagset.StringVar(&StatusSocket, "status-socket", filepath.Join(K0sVars.RunDir, "status.sock"), "Full file path to the socket file.")
+	flagset.StringVar(&StatusSocket, "status-socket", "", "Full file path to the socket file. (default: <rundir>/status.sock)")
 	flagset.StringVar(&DebugListenOn, "debugListenOn", ":6060", "Http listenOn for Debug pprof handler")
 	return flagset
 }
@@ -185,7 +267,7 @@ func GetWorkerFlags() *pflag.FlagSet {
 	flagset.StringVar(&workerOpts.ClusterDNS, "cluster-dns", "10.96.0.10", "HACK: cluster dns for the windows worker node")
 	flagset.BoolVar(&workerOpts.CloudProvider, "enable-cloud-provider", false, "Whether or not to enable cloud provider support in kubelet")
 	flagset.StringVar(&workerOpts.TokenFile, "token-file", "", "Path to the file containing token.")
-	flagset.StringToStringVarP(&workerOpts.CmdLogLevels, "logging", "l", DefaultLogLevels(), "Logging Levels for the different components")
+	flagset.StringToStringVarP(&workerOpts.LogLevels, "logging", "l", DefaultLogLevels(), "Logging Levels for the different components")
 	flagset.StringSliceVarP(&workerOpts.Labels, "labels", "", []string{}, "Node labels, list of key=value pairs")
 	flagset.StringSliceVarP(&workerOpts.Taints, "taints", "", []string{}, "Node taints, list of key=value:effect strings")
 	flagset.StringVar(&workerOpts.KubeletExtraArgs, "kubelet-extra-args", "", "extra args for kubelet")
@@ -220,7 +302,7 @@ func GetControllerFlags() *pflag.FlagSet {
 	flagset.BoolVar(&controllerOpts.EnableWorker, "enable-worker", false, "enable worker (default false)")
 	flagset.StringSliceVar(&controllerOpts.DisableComponents, "disable-components", []string{}, "disable components (valid items: "+strings.Join(availableComponents, ",")+")")
 	flagset.StringVar(&workerOpts.TokenFile, "token-file", "", "Path to the file containing join-token.")
-	flagset.StringToStringVarP(&workerOpts.CmdLogLevels, "logging", "l", DefaultLogLevels(), "Logging Levels for the different components")
+	flagset.StringToStringVarP(&workerOpts.LogLevels, "logging", "l", DefaultLogLevels(), "Logging Levels for the different components")
 	flagset.BoolVar(&controllerOpts.SingleNode, "single", false, "enable single node (implies --enable-worker, default false)")
 	flagset.BoolVar(&controllerOpts.NoTaints, "no-taints", false, "disable default taints for controller node")
 	flagset.BoolVar(&controllerOpts.EnableK0sCloudProvider, "enable-k0s-cloud-provider", false, "enables the k0s-cloud-provider (default false)")
@@ -245,36 +327,39 @@ func FileInputFlag() *pflag.FlagSet {
 	return flagset
 }
 
-func GetCmdOpts() CLIOptions {
-	K0sVars = constant.GetConfig(DataDir)
-
-	if controllerOpts.SingleNode {
-		controllerOpts.EnableWorker = true
-		K0sVars.DefaultStorageType = "kine"
-	}
-
-	// When CfgFile is set, verify the file can be opened
-	if CfgFile != "" {
-		if fd, err := os.Open(CfgFile); err != nil {
-			logrus.WithError(err).Fatalf("Cannot access config file (%s)", CfgFile)
-		} else {
-			_ = fd.Close()
-		}
-	}
-
-	opts := CLIOptions{
+func DefaultCLIOptions() CLIOptions {
+	o := CLIOptions{
 		ControllerOptions: controllerOpts,
 		WorkerOptions:     workerOpts,
 
-		CfgFile:          CfgFile,
-		NodeConfig:       getNodeConfig(K0sVars),
-		Debug:            Debug,
-		Verbose:          Verbose,
-		DefaultLogLevels: DefaultLogLevels(),
-		K0sVars:          K0sVars,
-		DebugListenOn:    DebugListenOn,
+		CfgFile:       CfgFile,
+		DataDir:       DataDir,
+		Debug:         Debug,
+		Verbose:       Verbose,
+		DebugListenOn: DebugListenOn,
 	}
-	return opts
+
+	o.K0sVars = constant.GetConfig(o.DataDir)
+
+	if StatusSocket != "" {
+		o.StatusSocket = StatusSocket
+	} else {
+		o.StatusSocket = filepath.Join(o.K0sVars.RunDir, "status.sock")
+	}
+
+	if o.ControllerOptions.SingleNode {
+		o.ControllerOptions.EnableWorker = true
+		o.K0sVars.DefaultStorageType = "kine"
+	}
+
+	return o
+}
+
+func GetCmdOpts(cmd *cobra.Command) CLIOptions {
+	o := DefaultCLIOptions()
+	o.stdin = cmd.InOrStdin()
+
+	return o
 }
 
 // CallParentPersistentPreRun runs the parent command's persistent pre-run.
@@ -317,16 +402,74 @@ func PreRunValidateConfig(k0sVars constant.CfgVars) error {
 	return nil
 }
 
-func getNodeConfig(k0sVars constant.CfgVars) *v1beta1.ClusterConfig {
-	loadingRules := ClientConfigLoadingRules{Nodeconfig: true, K0sVars: k0sVars}
-	cfg, err := loadingRules.Load()
-	if err != nil {
-		return nil
+func (o *CLIOptions) storageSpec() *v1beta1.StorageSpec {
+	switch o.K0sVars.DefaultStorageType {
+	case v1beta1.KineStorageType:
+		return v1beta1.KineStorageSpec(o.K0sVars.DataDir)
+	case v1beta1.EtcdStorageType:
+		return v1beta1.EtcdStorageSpec()
+	default:
+		return v1beta1.DefaultStorageSpec()
 	}
-	return cfg
 }
 
-func LoadClusterConfig(k0sVars constant.CfgVars) (*v1beta1.ClusterConfig, error) {
-	loadingRules := ClientConfigLoadingRules{K0sVars: k0sVars}
-	return loadingRules.Load()
+func (o *CLIOptions) getConfigFile() *v1beta1.ClusterConfig {
+	switch o.CfgFile {
+	case "":
+		logrus.Fatal("config file not specified")
+		//exits
+	case "-":
+		if o.stdin == nil {
+			logrus.Fatal("stdin is not available")
+			// exits
+		}
+		cfg, err := v1beta1.ConfigFromReader(o.stdin, o.storageSpec())
+		if err != nil {
+			logrus.WithError(err).Fatal("can't read config from stdin")
+			// exits
+		}
+		return cfg
+	case constant.K0sConfigPathDefault:
+		fd, err := os.Open(o.CfgFile)
+		if err != nil {
+			logrus.WithError(err).Debugf("cannot access default config file (%s), generating default config", o.CfgFile)
+			return v1beta1.DefaultClusterConfig(o.storageSpec())
+		}
+		defer fd.Close()
+		cfg, err := v1beta1.ConfigFromReader(fd, o.storageSpec())
+		if err != nil {
+			logrus.WithError(err).Fatalf("cannot parse default config file (%s)", o.CfgFile)
+			// exits
+		}
+		return cfg
+	default:
+		fd, err := os.Open(o.CfgFile)
+		if err != nil {
+			logrus.WithError(err).Fatalf("cannot access config file (%s)", o.CfgFile)
+			// exits
+		}
+		defer fd.Close()
+		cfg, err := v1beta1.ConfigFromReader(fd, o.storageSpec())
+		if err != nil {
+			logrus.WithError(err).Fatalf("cannot parse config file (%s)", o.CfgFile)
+		}
+		return cfg
+	}
+	return nil // unreachable
+}
+
+// InitialConfig is the configuration as read from the config file or stdin or generated from defaults on startup
+func (o *CLIOptions) InitialConfig() *v1beta1.ClusterConfig {
+	if o.initialConfig == nil {
+		o.initialConfig = o.getConfigFile()
+	}
+	return o.initialConfig
+}
+
+// BootstrapConfig returns the minimal config required to bootstrap the cluster, the rest of the config can come from the dynamic config. Built from the initial config.
+func (o *CLIOptions) BootstrapConfig() *v1beta1.ClusterConfig {
+	if o.bootstrapConfig == nil {
+		o.bootstrapConfig = o.InitialConfig().GetBootstrappingConfig()
+	}
+	return o.bootstrapConfig
 }

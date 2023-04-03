@@ -71,8 +71,8 @@ Note: A certificate once signed cannot be revoked for a particular user`,
 				return fmt.Errorf("username is mandatory")
 			}
 			username := args[0]
-			c := config.GetCmdOpts()
-			clusterAPIURL := c.NodeConfig.Spec.API.APIAddressURL()
+			c := config.GetCmdOpts(cmd)
+			clusterAPIURL := c.BootstrapConfig().Spec.API.APIAddressURL()
 
 			caCert, err := os.ReadFile(path.Join(c.K0sVars.CertRootDir, "ca.crt"))
 			if err != nil {

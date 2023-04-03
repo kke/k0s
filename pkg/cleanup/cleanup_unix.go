@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os/exec"
 
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/component/worker"
 
 	"github.com/k0sproject/k0s/pkg/constant"
@@ -28,7 +29,7 @@ import (
 )
 
 type Config struct {
-	cfgFile          string
+	bootstrapConfig  *v1beta1.ClusterConfig
 	containerd       *containerdConfig
 	containerRuntime runtime.ContainerRuntime
 	dataDir          string
@@ -42,7 +43,7 @@ type containerdConfig struct {
 	socketPath string
 }
 
-func NewConfig(k0sVars constant.CfgVars, cfgFile string, criSocketPath string) (*Config, error) {
+func NewConfig(k0sVars constant.CfgVars, bootstrapConfig *v1beta1.ClusterConfig, criSocketPath string) (*Config, error) {
 	runDir := "/run/k0s" // https://github.com/k0sproject/k0s/pull/591/commits/c3f932de85a0b209908ad39b817750efc4987395
 
 	var err error
@@ -64,7 +65,7 @@ func NewConfig(k0sVars constant.CfgVars, cfgFile string, criSocketPath string) (
 	}
 
 	return &Config{
-		cfgFile:          cfgFile,
+		bootstrapConfig:  bootstrapConfig,
 		containerd:       containerdCfg,
 		containerRuntime: runtime.NewContainerRuntime(runtimeType, criSocketPath),
 		dataDir:          k0sVars.DataDir,

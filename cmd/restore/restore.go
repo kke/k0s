@@ -50,7 +50,7 @@ func NewRestoreCmd() *cobra.Command {
 		Use:   "restore filename",
 		Short: "restore k0s state from given backup archive. Use '-' as filename to read from stdin. Must be run as root (or with sudo)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c.CLIOptions = config.GetCmdOpts()
+			c.CLIOptions = config.GetCmdOpts(cmd)
 			if len(args) != 1 {
 				return fmt.Errorf("path to backup archive expected")
 			}

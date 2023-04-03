@@ -31,4 +31,7 @@ type ConfigSource interface {
 	Stop()
 	// NeedToStoreInitialConfig tells the configsource user if the initial config should be stored in the api or not
 	NeedToStoreInitialConfig() bool
+
+	// InitialConfig returns the initial config that was used to create the config source
+	InitialConfig() *v1beta1.ClusterConfig
 }

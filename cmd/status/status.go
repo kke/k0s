@@ -24,7 +24,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/k0sproject/k0s/pkg/component/status"
@@ -41,12 +40,15 @@ func NewStatusCmd() *cobra.Command {
 		Short:   "Get k0s instance status information",
 		Example: `The command will return information about system init, PID, k0s role, kubeconfig and similar.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			c := config.GetCmdOpts(cmd)
+
 			cmd.SilenceUsage = true
+
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("currently not supported on windows")
 			}
 
-			statusInfo, err := status.GetStatusInfo(config.StatusSocket)
+			statusInfo, err := status.GetStatusInfo(c.StatusSocket)
 			if err != nil {
 				return err
 			}
@@ -61,7 +63,7 @@ func NewStatusCmd() *cobra.Command {
 
 	cmd.SilenceUsage = true
 	cmd.PersistentFlags().StringVarP(&output, "out", "o", "", "sets type of output to json or yaml")
-	cmd.PersistentFlags().StringVar(&config.StatusSocket, "status-socket", filepath.Join(config.K0sVars.RunDir, "status.sock"), "Full file path to the socket file.")
+	cmd.PersistentFlags().StringVar(&config.StatusSocket, "status-socket", "", "Full file path to the socket file. (default: <rundir>/status.sock)")
 	cmd.AddCommand(NewStatusSubCmdComponents())
 	return cmd
 }
@@ -73,12 +75,14 @@ func NewStatusSubCmdComponents() *cobra.Command {
 		Short:   "Get k0s instance component status information",
 		Example: `The command will return information about k0s components.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			c := config.GetCmdOpts(cmd)
+
 			cmd.SilenceUsage = true
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("currently not supported on windows")
 			}
 			fmt.Fprintln(os.Stderr, "!!! per component status is not yet finally ready, information here might be not full yet")
-			state, err := status.GetComponentStatus(config.StatusSocket, maxCount)
+			state, err := status.GetComponentStatus(c.StatusSocket, maxCount)
 			if err != nil {
 				return err
 			}

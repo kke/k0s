@@ -19,27 +19,42 @@ package config
 import (
 	"os"
 
+	"sync/atomic"
+
 	"github.com/k0sproject/k0s/pkg/config"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
 
 func NewStatusCmd() *cobra.Command {
-	var outputFormat string
+	// since the status command re-executes itself with a different set of arguments
+	// it's theoretically possible to end up in an infinite loop, this bool is used
+	// to detect that has happened and exit with an error
+	var recursionGuard atomic.Bool
 
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Display dynamic configuration reconciliation status",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			c := config.GetCmdOpts()
-			os.Args = []string{os.Args[0], "kubectl", "--data-dir", c.K0sVars.DataDir, "-n", "kube-system", "get", "event", "--field-selector", "involvedObject.name=k0s"}
-			if outputFormat != "" {
-				os.Args = append(os.Args, "-o", outputFormat)
+			if recursionGuard.Swap(true) {
+				logrus.Fatalf("status command fatal malfunction")
 			}
+
+			c := config.GetCmdOpts(cmd)
+
+			newArgs := []string{os.Args[0], "kubectl", "--data-dir", c.DataDir, "-n", "kube-system", "get", "event", "--field-selector", "involvedObject.name=k0s"}
+
+			if outputFormat := cmd.Flags().Lookup("output").Value.String(); outputFormat != "" {
+				newArgs = append(os.Args, "-o", outputFormat)
+			}
+
+			cmd.SetArgs(newArgs)
+
 			return cmd.Execute()
 		},
 	}
 	cmd.PersistentFlags().AddFlagSet(config.GetKubeCtlFlagSet())
-	cmd.Flags().StringVarP(&outputFormat, "output", "o", "", "Output format. Must be one of yaml|json")
+	cmd.Flags().StringP("output", "o", "", "Output format. Must be one of yaml|json")
 	return cmd
 }

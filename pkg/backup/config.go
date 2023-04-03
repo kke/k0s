@@ -25,19 +25,24 @@ import (
 	"os"
 	"path"
 
-	"github.com/k0sproject/k0s/internal/pkg/file"
 	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/yaml"
+
+	"github.com/k0sproject/k0s/internal/pkg/file"
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 )
 
 type configurationStep struct {
-	cfgPath            string
+	clusterConfig      *v1beta1.ClusterConfig
+	tmpDir             string
 	restoredConfigPath string
 	out                io.Writer
 }
 
-func newConfigurationStep(cfgPath, restoredConfigPath string, out io.Writer) *configurationStep {
+func newConfigurationStep(clusterConfig *v1beta1.ClusterConfig, tmpDir, restoredConfigPath string, out io.Writer) *configurationStep {
 	return &configurationStep{
-		cfgPath:            cfgPath,
+		clusterConfig:      clusterConfig,
+		tmpDir:             tmpDir,
 		restoredConfigPath: restoredConfigPath,
 		out:                out,
 	}
@@ -48,7 +53,15 @@ func (c configurationStep) Name() string {
 }
 
 func (c configurationStep) Backup() (StepResult, error) {
-	return StepResult{filesForBackup: []string{c.cfgPath}}, nil
+	cfgFile := path.Join(c.tmpDir, "k0s.yaml")
+	cfgContent, err := yaml.Marshal(c.clusterConfig)
+	if err != nil {
+		return StepResult{}, fmt.Errorf("failed to marshal cluster config: %w", err)
+	}
+	if err := os.WriteFile(cfgFile, cfgContent, 0o600); err != nil {
+		return StepResult{}, fmt.Errorf("failed to write cluster config: %w", err)
+	}
+	return StepResult{filesForBackup: []string{cfgFile}}, nil
 }
 
 func (c configurationStep) Restore(restoreFrom, restoreTo string) error {

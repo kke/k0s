@@ -32,7 +32,6 @@ import (
 	"github.com/k0sproject/k0s/internal/pkg/archive"
 	"github.com/k0sproject/k0s/internal/pkg/file"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
-	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/constant"
 )
 
@@ -44,14 +43,8 @@ type Manager struct {
 }
 
 // RunBackup backups cluster
-func (bm *Manager) RunBackup(nodeSpec *v1beta1.ClusterSpec, vars constant.CfgVars, savePathDir string, out io.Writer) error {
-	configLoader := config.ClientConfigLoadingRules{}
-	_, err := configLoader.Load()
-	if err != nil {
-		return err
-	}
-
-	bm.discoverSteps(configLoader.RuntimeConfigPath, nodeSpec, vars, "backup", "", out)
+func (bm *Manager) RunBackup(clusterConfig *v1beta1.ClusterConfig, vars constant.CfgVars, savePathDir string, out io.Writer) error {
+	bm.discoverSteps(clusterConfig, vars, "backup", "", out)
 	defer os.RemoveAll(bm.tmpDir)
 	assets := make([]string, 0, len(bm.steps))
 
@@ -82,11 +75,11 @@ func (bm *Manager) RunBackup(nodeSpec *v1beta1.ClusterSpec, vars constant.CfgVar
 	return nil
 }
 
-func (bm *Manager) discoverSteps(configFilePath string, nodeSpec *v1beta1.ClusterSpec, vars constant.CfgVars, action string, restoredConfigPath string, out io.Writer) {
-	if nodeSpec.Storage.Type == v1beta1.EtcdStorageType && !nodeSpec.Storage.Etcd.IsExternalClusterUsed() {
-		bm.Add(newEtcdStep(bm.tmpDir, vars.CertRootDir, vars.EtcdCertDir, nodeSpec.Storage.Etcd.PeerAddress, vars.EtcdDataDir))
-	} else if nodeSpec.Storage.Type == v1beta1.KineStorageType && strings.HasPrefix(nodeSpec.Storage.Kine.DataSource, "sqlite:") {
-		bm.Add(newSqliteStep(bm.tmpDir, nodeSpec.Storage.Kine.DataSource, vars.DataDir))
+func (bm *Manager) discoverSteps(clusterConfig *v1beta1.ClusterConfig, vars constant.CfgVars, action string, restoredConfigPath string, out io.Writer) {
+	if clusterConfig.Spec.Storage.Type == v1beta1.EtcdStorageType && !clusterConfig.Spec.Storage.Etcd.IsExternalClusterUsed() {
+		bm.Add(newEtcdStep(bm.tmpDir, vars.CertRootDir, vars.EtcdCertDir, clusterConfig.Spec.Storage.Etcd.PeerAddress, vars.EtcdDataDir))
+	} else if clusterConfig.Spec.Storage.Type == v1beta1.KineStorageType && strings.HasPrefix(clusterConfig.Spec.Storage.Kine.DataSource, "sqlite:") {
+		bm.Add(newSqliteStep(bm.tmpDir, clusterConfig.Spec.Storage.Kine.DataSource, vars.DataDir))
 	} else {
 		logrus.Warnf("only internal etcd and sqlite %s are supported. Other storage backends must be backed-up/restored manually.", action)
 	}
@@ -103,7 +96,7 @@ func (bm *Manager) discoverSteps(configFilePath string, nodeSpec *v1beta1.Cluste
 		}
 		bm.Add(NewFilesystemStep(path))
 	}
-	bm.Add(newConfigurationStep(configFilePath, restoredConfigPath, out))
+	bm.Add(newConfigurationStep(clusterConfig, bm.tmpDir, restoredConfigPath, out))
 }
 
 // Add adds backup step
@@ -154,11 +147,11 @@ func (bm *Manager) RunRestore(archivePath string, k0sVars constant.CfgVars, desi
 		return fmt.Errorf("failed to unpack backup archive `%s`: %v", archivePath, err)
 	}
 	defer os.RemoveAll(bm.tmpDir)
-	cfg, err := bm.getConfigForRestore(k0sVars)
+	cfg, err := bm.configFromBackup()
 	if err != nil {
 		return fmt.Errorf("failed to parse backed-up configuration file, check the backup archive: %v", err)
 	}
-	bm.discoverSteps(fmt.Sprintf("%s/k0s.yaml", bm.tmpDir), cfg.Spec, k0sVars, "restore", desiredRestoredConfigPath, out)
+	bm.discoverSteps(cfg, k0sVars, "restore", desiredRestoredConfigPath, out)
 	logrus.Info("Starting restore")
 
 	for _, step := range bm.steps {
@@ -170,19 +163,13 @@ func (bm *Manager) RunRestore(archivePath string, k0sVars constant.CfgVars, desi
 	return nil
 }
 
-func (bm Manager) getConfigForRestore(k0sVars constant.CfgVars) (*v1beta1.ClusterConfig, error) {
-	configFromBackup := path.Join(bm.tmpDir, "k0s.yaml")
-	logrus.Debugf("Using k0s.yaml from: %s", configFromBackup)
-
-	loadingRules := config.ClientConfigLoadingRules{
-		RuntimeConfigPath: configFromBackup,
-		K0sVars:           k0sVars,
-	}
-	cfg, err := loadingRules.Load()
+func (bm Manager) configFromBackup() (*v1beta1.ClusterConfig, error) {
+	cfgFile := path.Join(bm.tmpDir, "k0s.yaml")
+	f, err := os.Open(cfgFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to open config from backup %s: %w", cfgFile, err)
 	}
-	return cfg, nil
+	return v1beta1.ConfigFromReader(f)
 }
 
 // NewBackupManager builds new manager

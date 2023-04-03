@@ -17,7 +17,6 @@ limitations under the License.
 package etcd
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/k0sproject/k0s/pkg/config"
@@ -34,17 +33,18 @@ func etcdLeaveCmd() *cobra.Command {
 		Use:   "leave",
 		Short: "Sign off a given etc node from etcd cluster",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
-			ctx := context.Background()
+			c := config.GetCmdOpts(cmd)
+			bootstrapConfig := c.BootstrapConfig()
+			ctx := cmd.Context()
 			if etcdPeerAddress == "" {
-				etcdPeerAddress = c.NodeConfig.Spec.Storage.Etcd.PeerAddress
+				etcdPeerAddress = bootstrapConfig.Spec.Storage.Etcd.PeerAddress
 			}
 			if etcdPeerAddress == "" {
 				return fmt.Errorf("can't leave etcd cluster: peer address is empty, check the config file or use cli argument")
 			}
 
 			peerURL := fmt.Sprintf("https://%s:2380", etcdPeerAddress)
-			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, c.NodeConfig.Spec.Storage.Etcd)
+			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, bootstrapConfig.Spec.Storage.Etcd)
 			if err != nil {
 				return fmt.Errorf("can't connect to the etcd: %v", err)
 			}

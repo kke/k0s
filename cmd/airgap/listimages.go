@@ -20,6 +20,8 @@ import (
 	"fmt"
 
 	"github.com/k0sproject/k0s/pkg/airgap"
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
+	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 
 	"github.com/spf13/cobra"
@@ -33,15 +35,24 @@ func NewAirgapListImagesCmd() *cobra.Command {
 		Short:   "List image names and version needed for air-gap install",
 		Example: `k0s airgap list-images`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
-			clusterConfig, err := config.LoadClusterConfig(c.K0sVars)
-			if err != nil {
-				return fmt.Errorf("failed to load cluster config: %w", err)
+			c := config.GetCmdOpts(cmd)
+
+			var clusterConfig *v1beta1.ClusterConfig
+
+			if k0sStatus, err := status.GetStatusInfo(c.StatusSocket); err == nil {
+				if k0sStatus.ClusterConfig != nil {
+					clusterConfig = k0sStatus.ClusterConfig
+				}
 			}
-			uris := airgap.GetImageURIs(clusterConfig.Spec, all)
-			for _, uri := range uris {
+
+			if clusterConfig == nil {
+				clusterConfig = c.InitialConfig()
+			}
+
+			for _, uri := range airgap.GetImageURIs(clusterConfig.Spec, all) {
 				fmt.Fprintln(cmd.OutOrStdout(), uri)
 			}
+
 			return nil
 		},
 	}

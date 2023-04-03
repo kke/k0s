@@ -28,15 +28,12 @@ func NewValidateCmd() *cobra.Command {
 		Short: "Validate k0s configuration",
 		Long: `Example:
    k0s config validate --config path_to_config.yaml`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			c := config.GetCmdOpts(cmd)
+			return c.InitialConfig().ValidationError()
 
-			loadingRules := config.ClientConfigLoadingRules{K0sVars: c.K0sVars}
-			_, err := loadingRules.ParseRuntimeConfig()
-			return err
 		},
-		SilenceUsage:  true,
-		SilenceErrors: true,
+		SilenceUsage: true,
 	}
 
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())

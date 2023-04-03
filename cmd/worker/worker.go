@@ -62,12 +62,11 @@ func NewWorkerCmd() *cobra.Command {
 			return config.CallParentPersistentPreRun(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := Command(config.GetCmdOpts())
+			c := Command(config.GetCmdOpts(cmd))
 			if len(args) > 0 {
 				c.TokenArg = args[0]
 			}
 
-			c.Logging = stringmap.Merge(c.CmdLogLevels, c.DefaultLogLevels)
 			if len(c.TokenArg) > 0 && len(c.TokenFile) > 0 {
 				return fmt.Errorf("you can only pass one token argument either as a CLI argument 'k0s worker [token]' or as a flag 'k0s worker --token-file [path]'")
 			}
@@ -121,6 +120,8 @@ func (c *Command) Start(ctx context.Context) error {
 		return err
 	}
 
+	logLevels := stringmap.Merge(c.LogLevels, config.DefaultLogLevels())
+
 	componentManager := manager.New(prober.DefaultProber)
 
 	var staticPods worker.StaticPods
@@ -143,7 +144,7 @@ func (c *Command) Start(ctx context.Context) error {
 	}
 	if c.CriSocket == "" {
 		componentManager.Add(ctx, &worker.ContainerD{
-			LogLevel: c.Logging["containerd"],
+			LogLevel: logLevels["containerd"],
 			K0sVars:  c.K0sVars,
 		})
 	}
@@ -160,7 +161,7 @@ func (c *Command) Start(ctx context.Context) error {
 		StaticPods:          staticPods,
 		Kubeconfig:          kubeletKubeconfigPath,
 		Configuration:       *workerConfig.KubeletConfiguration.DeepCopy(),
-		LogLevel:            c.Logging["kubelet"],
+		LogLevel:            logLevels["kubelet"],
 		Labels:              c.Labels,
 		Taints:              c.Taints,
 		ExtraArgs:           c.KubeletExtraArgs,
@@ -173,7 +174,7 @@ func (c *Command) Start(ctx context.Context) error {
 		}
 		componentManager.Add(ctx, &worker.KubeProxy{
 			K0sVars:   c.K0sVars,
-			LogLevel:  c.Logging["kube-proxy"],
+			LogLevel:  logLevels["kube-proxy"],
 			CIDRRange: c.CIDRRange,
 		})
 		componentManager.Add(ctx, &worker.CalicoInstaller{
@@ -186,25 +187,20 @@ func (c *Command) Start(ctx context.Context) error {
 
 	certManager := worker.NewCertificateManager(ctx, kubeletKubeconfigPath)
 	if !c.SingleNode && !c.EnableWorker {
-		clusterConfig, err := config.LoadClusterConfig(c.K0sVars)
-		if err != nil {
-			return fmt.Errorf("failed to load cluster config: %w", err)
-		}
-
 		componentManager.Add(ctx, &status.Status{
 			Prober: prober.DefaultProber,
 			StatusInformation: status.K0sStatus{
-				Pid:           os.Getpid(),
-				Role:          "worker",
-				Args:          os.Args,
-				Version:       build.Version,
-				Workloads:     true,
-				SingleNode:    false,
-				K0sVars:       c.K0sVars,
-				ClusterConfig: clusterConfig,
+				Pid:             os.Getpid(),
+				Role:            "worker",
+				Args:            os.Args,
+				Version:         build.Version,
+				Workloads:       true,
+				SingleNode:      false,
+				K0sVars:         c.K0sVars,
+				BootstrapConfig: nil,
 			},
 			CertManager: certManager,
-			Socket:      config.StatusSocket,
+			Socket:      c.StatusSocket,
 		})
 	}
 
