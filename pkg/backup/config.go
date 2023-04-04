@@ -21,25 +21,24 @@ package backup
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path"
 
-	"github.com/k0sproject/k0s/internal/pkg/file"
-	"github.com/sirupsen/logrus"
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
+
+	"sigs.k8s.io/yaml"
 )
 
 type configurationStep struct {
-	cfgPath            string
+	tmpDir             string
+	config             *v1beta1.ClusterConfig
 	restoredConfigPath string
-	out                io.Writer
 }
 
-func newConfigurationStep(cfgPath, restoredConfigPath string, out io.Writer) *configurationStep {
+func newConfigurationFileStep(config *v1beta1.ClusterConfig, tmpDir string) *configurationStep {
 	return &configurationStep{
-		cfgPath:            cfgPath,
-		restoredConfigPath: restoredConfigPath,
-		out:                out,
+		config: config,
+		tmpDir: tmpDir,
 	}
 }
 
@@ -47,33 +46,14 @@ func (c configurationStep) Name() string {
 	return "k0s-config"
 }
 
-func (c configurationStep) Backup() (StepResult, error) {
-	return StepResult{filesForBackup: []string{c.cfgPath}}, nil
-}
-
-func (c configurationStep) Restore(restoreFrom, restoreTo string) error {
-	objectPathInArchive := path.Join(restoreFrom, "k0s.yaml")
-
-	if !file.Exists(objectPathInArchive) {
-		logrus.Debugf("%s does not exist in the backup file", objectPathInArchive)
-		return nil
+func (c configurationStep) Backup() (BackupStepResult, error) {
+	cfgFile := path.Join(c.tmpDir, "k0s.yaml")
+	data, err := yaml.Marshal(c.config)
+	if err != nil {
+		return BackupStepResult{}, fmt.Errorf("failed to marshal config: %v", err)
 	}
-
-	logrus.Infof("Previously used k0s.yaml saved under the data directory `%s`", restoreTo)
-
-	if c.restoredConfigPath == "-" {
-		f, err := os.Open(objectPathInArchive)
-		if err != nil {
-			return err
-		}
-		if f == nil {
-			return fmt.Errorf("couldn't get a file handle for %s", c.restoredConfigPath)
-		}
-		defer f.Close()
-		_, err = io.Copy(c.out, f)
-		return err
+	if err := os.WriteFile(cfgFile, data, 0640); err != nil {
+		return BackupStepResult{}, fmt.Errorf("failed to write config backup to %s: %v", cfgFile, err)
 	}
-
-	logrus.Infof("restoring from `%s` to `%s`", objectPathInArchive, c.restoredConfigPath)
-	return file.Copy(objectPathInArchive, c.restoredConfigPath)
+	return BackupStepResult{filesForBackup: []string{cfgFile}}, nil
 }

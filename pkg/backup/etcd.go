@@ -53,11 +53,11 @@ func (e etcdStep) Name() string {
 	return "etcd"
 }
 
-func (e etcdStep) Backup() (StepResult, error) {
+func (e etcdStep) Backup() (BackupStepResult, error) {
 	ctx := context.TODO()
 	etcdClient, err := etcd.NewClient(e.certRootDir, e.etcdCertDir, nil)
 	if err != nil {
-		return StepResult{}, err
+		return BackupStepResult{}, err
 	}
 	path := filepath.Join(e.tmpDir, etcdBackup)
 
@@ -66,10 +66,10 @@ func (e etcdStep) Backup() (StepResult, error) {
 
 	// save snapshot
 	if err = snapshot.Save(ctx, lg, *etcdClient.Config, path); err != nil {
-		return StepResult{}, err
+		return BackupStepResult{}, err
 	}
 	// add snapshot's path to assets
-	return StepResult{filesForBackup: []string{path}}, nil
+	return BackupStepResult{filesForBackup: []string{path}}, nil
 }
 
 func (e etcdStep) Restore(restoreFrom, _ string) error {

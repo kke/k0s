@@ -54,28 +54,28 @@ func (s *sqliteStep) Name() string {
 	return fmt.Sprintf("sqlite db path %s", dbPath)
 }
 
-func (s *sqliteStep) Backup() (StepResult, error) {
+func (s *sqliteStep) Backup() (BackupStepResult, error) {
 	dbPath, err := s.getKineDBPath()
 	if err != nil {
-		return StepResult{}, err
+		return BackupStepResult{}, err
 	}
 	kineDB, err := db.Open(dbPath)
 	if err != nil {
-		return StepResult{}, err
+		return BackupStepResult{}, err
 	}
 	path := filepath.Join(s.tmpDir, kineBackup)
 
 	logrus.Debugf("exporting kine db to %v", path)
 	_, err = os.Create(path)
 	if err != nil {
-		return StepResult{}, fmt.Errorf("failed to create kine backup: %v", err)
+		return BackupStepResult{}, fmt.Errorf("failed to create kine backup: %v", err)
 	}
 	// create a hot backup of the kine db
 	err = kineDB.Backup(path)
 	if err != nil {
-		return StepResult{}, fmt.Errorf("failed to back-up kine db: %v", err)
+		return BackupStepResult{}, fmt.Errorf("failed to back-up kine db: %v", err)
 	}
-	return StepResult{filesForBackup: []string{path}}, nil
+	return BackupStepResult{filesForBackup: []string{path}}, nil
 }
 
 func (s *sqliteStep) Restore(restoreFrom string, _ string) error {

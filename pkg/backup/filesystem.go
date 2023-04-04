@@ -39,22 +39,23 @@ func (d FileSystemStep) Name() string {
 	return fmt.Sprintf("filesystem path `%s`", d.path)
 }
 
-func (d FileSystemStep) Backup() (StepResult, error) {
+func (d FileSystemStep) Backup() (BackupStepResult, error) {
 	s, err := os.Stat(d.path)
 	if os.IsNotExist(err) {
-		logrus.Debugf("Path `%s` does not exist, skipping...", d.path)
-		return StepResult{}, nil
+		logrus.Debugf("path `%s` does not exist, skipping...", d.path)
+		return BackupStepResult{}, nil
 	}
 	if err != nil {
-		return StepResult{}, fmt.Errorf("can't stat path `%s`: %v", d.path, err)
+		return BackupStepResult{}, fmt.Errorf("can't stat path `%s`: %v", d.path, err)
 	}
 	if s.IsDir() {
 		return d.dir()
 	}
-	return StepResult{filesForBackup: []string{d.path}}, nil
+	return BackupStepResult{filesForBackup: []string{d.path}}, nil
 }
 
-func (d FileSystemStep) dir() (StepResult, error) {
+func (d FileSystemStep) dir() (BackupStepResult, error) {
+	logrus.Infof("adding path `%s` to the backup archive", d.path)
 	var files []string
 	if err := filepath.Walk(d.path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -63,9 +64,9 @@ func (d FileSystemStep) dir() (StepResult, error) {
 		files = append(files, path)
 		return nil
 	}); err != nil {
-		return StepResult{}, err
+		return BackupStepResult{}, err
 	}
-	return StepResult{filesForBackup: files}, nil
+	return BackupStepResult{filesForBackup: files}, nil
 }
 
 func (d FileSystemStep) Restore(restoreFrom, restoreTo string) error {
@@ -74,7 +75,7 @@ func (d FileSystemStep) Restore(restoreFrom, restoreTo string) error {
 	objectPathInRestored := path.Join(restoreTo, childName)
 	stat, err := os.Stat(objectPathInArchive)
 	if os.IsNotExist(err) {
-		logrus.Debugf("Path `%s` not found in the archive, skipping...", objectPathInArchive)
+		logrus.Debugf("path `%s` not found in the archive, skipping...", objectPathInArchive)
 		return nil
 	}
 	logrus.Infof("restoring from `%s` to `%s`", objectPathInArchive, restoreTo)

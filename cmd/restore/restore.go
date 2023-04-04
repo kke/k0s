@@ -23,99 +23,79 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
+	"regexp"
 
-	"github.com/k0sproject/k0s/internal/pkg/dir"
-	"github.com/k0sproject/k0s/internal/pkg/file"
 	"github.com/k0sproject/k0s/pkg/backup"
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
-	"github.com/k0sproject/k0s/pkg/constant"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-type command struct {
-	config.CLIOptions
-	restoredConfigPath string
-}
+type command config.CLIOptions
 
 func NewRestoreCmd() *cobra.Command {
-	var c command
-
 	cmd := &cobra.Command{
 		Use:   "restore filename",
 		Short: "restore k0s state from given backup archive. Use '-' as filename to read from stdin. Must be run as root (or with sudo)",
+		Args:  cobra.ExactValidArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c.CLIOptions = config.GetCmdOpts()
-			if len(args) != 1 {
-				return fmt.Errorf("path to backup archive expected")
+			c := command(config.GetCmdOpts(cmd))
+
+			if _, err := status.GetStatusInfo(c.StatusSocket); err != nil {
+				logrus.Fatal("k0s seems to be running! k0s must be down during the restore operation.")
 			}
-			return c.restore(args[0], cmd.OutOrStdout())
+
+			reader, err := c.reader(cmd, args[0])
+			if err != nil {
+				return err
+			}
+
+			writer, err := c.writer(cmd, args[0], cmd.Flags().Lookup("config-out").Value.String())
+			if err != nil {
+				return err
+			}
+
+			bm := backup.NewBackupManager()
+			return bm.RunRestore(reader, writer)
 		},
 	}
 
 	cmd.SilenceUsage = true
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		logrus.Fatal("failed to get local path")
-	}
-
-	restoredConfigPathDescription := fmt.Sprintf("Specify desired name and full path for the restored k0s.yaml file (default: %s/k0s_<archive timestamp>.yaml", cwd)
-	cmd.Flags().StringVar(&c.restoredConfigPath, "config-out", "", restoredConfigPathDescription)
+	cmd.Flags().String("config-out", "", "path for the restored k0s.yaml file, use '-' for stdout. (default: k0s_<archive timestamp>.yaml")
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+
 	return cmd
 }
 
-func (c *command) restore(path string, out io.Writer) error {
-	if os.Geteuid() != 0 {
-		return fmt.Errorf("this command must be run as root")
+func (c *command) reader(cmd *cobra.Command, archivePath string) (io.Reader, error) {
+	if archivePath == "-" {
+		return cmd.InOrStdin(), nil
 	}
 
-	k0sStatus, _ := status.GetStatusInfo(config.StatusSocket)
-	if k0sStatus != nil && k0sStatus.Pid != 0 {
-		logrus.Fatal("k0s seems to be running! k0s must be down during the restore operation.")
-	}
-
-	if path != "-" && !file.Exists(path) {
-		return fmt.Errorf("given file %s does not exist", path)
-	}
-
-	if !dir.IsDirectory(c.K0sVars.DataDir) {
-		if err := dir.Init(c.K0sVars.DataDir, constant.DataDirMode); err != nil {
-			return err
-		}
-	}
-
-	mgr, err := backup.NewBackupManager()
-	if err != nil {
-		return err
-	}
-	if c.restoredConfigPath == "" {
-		c.restoredConfigPath = defaultConfigFileOutputPath(path)
-	}
-	return mgr.RunRestore(path, c.K0sVars, c.restoredConfigPath, out)
+	return os.Open(archivePath)
 }
 
-// set output config file name and path according to input archive Timestamps
-// the default location for the restore operation is the currently running cwd
-// this can be override, by using the --config-out flag
-func defaultConfigFileOutputPath(archivePath string) string {
-	if archivePath == "-" {
-		return "-"
+func (c *command) writer(cmd *cobra.Command, archivePath, configOut string) (io.Writer, error) {
+	if configOut == "-" {
+		logrus.SetOutput(cmd.ErrOrStderr()) // make sure we log to stderr to not mess up the output
+		return cmd.OutOrStdout(), nil
 	}
-	f := filepath.Base(archivePath)
-	nameWithoutExt := strings.Split(f, ".")[0]
-	fName := strings.TrimPrefix(nameWithoutExt, "k0s_backup_")
-	restoredFileName := fmt.Sprintf("k0s_%s.yaml", fName)
 
-	cwd, err := os.Getwd()
-	if err != nil {
-		return ""
+	if archivePath == "-" {
+		archivePath = "k0s.yaml"
 	}
-	return path.Join(cwd, restoredFileName)
+
+	if match := regexp.MustCompile(`k0s_backup_(.+?)\.tar$`).FindStringSubmatch(filepath.Base(configOut)); len(match) > 1 {
+		configOut = fmt.Sprintf("k0s_%s.yaml", match[1])
+	}
+
+	f, err := os.Create(configOut)
+	if err != nil {
+		return nil, err
+	}
+	return f, nil
 }
