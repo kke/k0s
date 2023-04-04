@@ -204,7 +204,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 		(bootstrapConfig.Spec.API.ExternalAddress != "" || bootstrapConfig.Spec.API.TunneledNetworkingMode)
 
 	c.nodeComponents.Add(ctx, &controller.APIServer{
-		ClusterConfig:             c.RuntimeConfig(),
+		ClusterConfig:             bootstrapConfig,
 		K0sVars:                   c.K0sVars,
 		LogLevel:                  logLevels["kube-apiserver"],
 		Storage:                   storageBackend,
