@@ -321,8 +321,7 @@ func GetControllerFlags() *pflag.FlagSet {
 // it in multiple places
 func FileInputFlag() *pflag.FlagSet {
 	flagset := &pflag.FlagSet{}
-	descString := fmt.Sprintf("config file, use '-' to read the config from stdin (default \"%s\")", constant.K0sConfigPathDefault)
-	flagset.StringVarP(&CfgFile, "config", "c", "", descString)
+	flagset.StringVarP(&CfgFile, "config", "c", constant.K0sConfigPathDefault, "config file, use '-' to read the config from stdin")
 
 	return flagset
 }
