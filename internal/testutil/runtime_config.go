@@ -22,12 +22,8 @@ import (
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/constant"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"github.com/stretchr/testify/require"
 )
-
-var resourceType = metav1.TypeMeta{APIVersion: "k0s.k0sproject.io/v1beta1", Kind: "clusterconfigs"}
 
 type ConfigGetter struct {
 	NodeConfig bool

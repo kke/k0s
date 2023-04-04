@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -25,18 +24,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	k0sv1beta1 "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
-	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/constant"
-
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	cOpts    = v1.CreateOptions{TypeMeta: resourceType}
 	fileYaml = `
 apiVersion: k0s.k0sproject.io/v1beta1
 kind: ClusterConfig
@@ -48,15 +42,6 @@ spec:
     podCIDR: 13.13.13.13/13
     kubeProxy:
       mode: ipvs	
-`
-	apiYaml = `
-apiVersion: k0s.k0sproject.io/v1beta1
-kind: ClusterConfig
-spec:
-  api:
-    externalAddress: api_external_address
-  network:
-    serviceCIDR: api_cidr
 `
 )
 
@@ -233,7 +218,7 @@ spec:
 
 // when a component requests an API config,
 // the merged node and cluster config should be returned
-func TestAPIConfig(t *testing.T) {
+func TestAPIConfig(_ *testing.T) {
 	// todo: not sure how to adapt this test
 }
 
@@ -241,18 +226,4 @@ func writeConfigFile(t *testing.T, yamlData string) (filePath string) {
 	cfgFilePath := path.Join(t.TempDir(), "k0s-config.yaml")
 	require.NoError(t, os.WriteFile(cfgFilePath, []byte(yamlData), 0644))
 	return cfgFilePath
-}
-
-func nonExistentPath(t *testing.T) string {
-	return path.Join(t.TempDir(), "non-existent")
-}
-
-func createFakeAPIConfig(t *testing.T, client k0sv1beta1.K0sV1beta1Interface) {
-	clusterConfigs := client.ClusterConfigs(constant.ClusterConfigNamespace)
-
-	config, err := v1beta1.ConfigFromString(apiYaml, v1beta1.DefaultStorageSpec())
-	require.NoError(t, err)
-
-	_, err = clusterConfigs.Create(context.TODO(), config.GetClusterWideConfig().StripDefaults(), cOpts)
-	require.NoError(t, err)
 }

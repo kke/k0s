@@ -24,9 +24,7 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/tools/clientcmd"
 
-	cfgClient "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset"
 	k0sv1beta1 "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/constant"
@@ -71,18 +69,4 @@ func configRequest(client k0sv1beta1.K0sV1beta1Interface) (clusterConfig *v1beta
 		return nil, fmt.Errorf("failed to fetch cluster-config from API: %v", err)
 	}
 	return cfg, nil
-}
-
-func apiClient(vars constant.CfgVars) (k0sv1beta1.K0sV1beta1Interface, error) {
-	// generate a kubernetes client from AdminKubeConfigPath
-	config, err := clientcmd.BuildConfigFromFlags("", vars.AdminKubeConfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("can't read kubeconfig: %w", err)
-	}
-	client, err := cfgClient.NewForConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("can't create kubernetes typed client for cluster config: %w", err)
-	}
-
-	return client.K0sV1beta1(), nil
 }
