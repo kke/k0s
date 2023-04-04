@@ -12,20 +12,24 @@
         <meta name="author" content="Mirantis, Inc.">
       
       
-        <link rel="canonical" href="https://docs.k0sproject.io/head/docker-shim/">
+        <link rel="canonical" href="https://docs.k0sproject.io/head/dockershim/">
       
       
+        <link rel="prev" href="../FAQ/">
+      
+      
+        <link rel="next" href="../troubleshooting/">
       
       <link rel="icon" href="../img/k0s_social.png">
-      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.1.4">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.1.5">
     
     
       
-        <title>Dockershim Deprecation - What Does It Mean For K0s? - Documentation</title>
+        <title>Dockershim deprecation - Documentation</title>
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.240905d7.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.7a7fce14.min.css">
       
         
         <link rel="stylesheet" href="../assets/stylesheets/palette.a0c5b2b5.min.css">
@@ -132,7 +136,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Dockershim Deprecation - What Does It Mean For K0s?
+              Dockershim deprecation
             
           </span>
         </div>
@@ -1101,14 +1105,16 @@
 
   
   
+    
+  
   
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
       
       
       
-      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+      <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
       
       
       
@@ -1117,7 +1123,7 @@
           <span class="md-nav__icon md-icon"></span>
         </label>
       
-      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+      <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
         <label class="md-nav__title" for="__nav_7">
           <span class="md-nav__icon md-icon"></span>
           Troubleshooting
@@ -1133,6 +1139,122 @@
       <a href="../FAQ/" class="md-nav__link">
         FAQ
       </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Dockershim deprecation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Dockershim deprecation
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#what-is-dockershim-and-why-was-it-deprecated" class="md-nav__link">
+    What is dockershim and why was it deprecated?
+  </a>
+  
+    <nav class="md-nav" aria-label="What is dockershim and why was it deprecated?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#so-whats-going-to-happen-to-dockershim" class="md-nav__link">
+    So what's going to happen to dockershim?
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#migrating-to-cri-dockerd" class="md-nav__link">
+    Migrating to CRI-Dockerd
+  </a>
+  
+    <nav class="md-nav" aria-label="Migrating to CRI-Dockerd">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cordon-and-drain-the-node" class="md-nav__link">
+    Cordon and drain the node
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#installing-cri-dockerd" class="md-nav__link">
+    Installing CRI-Dockerd
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configure-k0s-to-use-dockershim" class="md-nav__link">
+    Configure K0s to use dockershim
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#start-k0s-with-cri-dockerd" class="md-nav__link">
+    Start k0s with cri-dockerd
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#uncordon-the-node" class="md-nav__link">
+    Uncordon the Node
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1355,15 +1477,15 @@
       
         <li class="md-nav__item">
   <a href="#what-is-dockershim-and-why-was-it-deprecated" class="md-nav__link">
-    What Is Dockershim, and Why Was It Deprecated?
+    What is dockershim and why was it deprecated?
   </a>
   
-    <nav class="md-nav" aria-label="What Is Dockershim, and Why Was It Deprecated?">
+    <nav class="md-nav" aria-label="What is dockershim and why was it deprecated?">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
   <a href="#so-whats-going-to-happen-to-dockershim" class="md-nav__link">
-    So What's going to happen to Dockershim?
+    So what's going to happen to dockershim?
   </a>
   
 </li>
@@ -1436,26 +1558,28 @@
                   
 
 
-<h1 id="dockershim-deprecation-what-does-it-mean-for-k0s">Dockershim Deprecation - What Does It Mean For K0s?<a class="headerlink" href="#dockershim-deprecation-what-does-it-mean-for-k0s" title="Permanent link">#</a></h1>
+<h1 id="dockershim-deprecation-what-does-it-mean-for-k0s">Dockershim deprecation - what does it mean for K0s?<a class="headerlink" href="#dockershim-deprecation-what-does-it-mean-for-k0s" title="Permanent link">#</a></h1>
 <p>Back in December 2020, Kubernetes have announced the <a href="https://kubernetes.io/blog/2020/12/02/dockershim-faq/">deprecation of the
-docker-shim</a> from version 1.24 onwards. As a consequence,
-k0s 1.24 and above don't support the docker-shim as well.</p>
-<h2 id="what-is-dockershim-and-why-was-it-deprecated">What Is Dockershim, and Why Was It Deprecated?<a class="headerlink" href="#what-is-dockershim-and-why-was-it-deprecated" title="Permanent link">#</a></h2>
+dockershim</a> from version 1.24 onwards. As a consequence,
+k0s 1.24 and above don't support the dockershim as well.</p>
+<h2 id="what-is-dockershim-and-why-was-it-deprecated">What is dockershim and why was it deprecated?<a class="headerlink" href="#what-is-dockershim-and-why-was-it-deprecated" title="Permanent link">#</a></h2>
 <p>The dockershim is a transparent library that intercepts API calls to the kubernetes API and handles their operation in the Docker API. Early versions of Kubernetes used this shim in order to allow containers to run over docker. Later versions of Kubernetes started creating containers via the CRI (Container Runtime Interface). Since CRI has become the de-facto default runtime for Kubernetes, maintaining the dockershim turned into a heavy burden for Kubernetes maintainers, and so the decision to deprecate the built-in dockershim support came into being.</p>
-<h3 id="so-whats-going-to-happen-to-dockershim">So What's going to happen to Dockershim?<a class="headerlink" href="#so-whats-going-to-happen-to-dockershim" title="Permanent link">#</a></h3>
+<h3 id="so-whats-going-to-happen-to-dockershim">So what's going to happen to dockershim?<a class="headerlink" href="#so-whats-going-to-happen-to-dockershim" title="Permanent link">#</a></h3>
 <p>Dockershim is not gone. It's only changed ownership. Mirantis has agreed to maintain dockershim (now called cri-dockerd). See: <a href="https://www.mirantis.com/blog/the-future-of-dockershim-is-cri-dockerd/">The Future of Dockershim is cri-dockerd</a>.</p>
 <p>From Kubernetes version 1.24 you will have the built-in possibility to run containers via CRI, but if you want to continue using docker, you are free to do so, using <a href="https://github.com/Mirantis/cri-dockerd">cri-dockerd</a>.</p>
 <p>In order to continue to use the Docker engine with Kubernetes v1.24+, you will have to migrated all worker nodes to use cri-dockerd.</p>
 <h2 id="migrating-to-cri-dockerd">Migrating to CRI-Dockerd<a class="headerlink" href="#migrating-to-cri-dockerd" title="Permanent link">#</a></h2>
 <p><em>This migration guide assumes that you've been running k0s with docker on version 1.23 and below.</em></p>
 <p>The following steps will need to be done on ALL k0s' worker nodes, or single-node controllers. Basically any node that runs containers will need to be migrated using the process detailed below.</p>
+<p>Please note that there are currently some <a href="../troubleshooting/#im-using-custom-cri-and-missing-some-labels-in-prometheus-metrics">pitfalls around container
+metrics</a> when using CRI-dockerd.</p>
 <h3 id="cordon-and-drain-the-node">Cordon and drain the node<a class="headerlink" href="#cordon-and-drain-the-node" title="Permanent link">#</a></h3>
 <p>Get a list of all nodes (k0s is still version 1.23, which already includes the docker-shim):</p>
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>k0s<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>nodes<span class="w"> </span>-o<span class="w"> </span>wide
 
 NAME<span class="w">                                        </span>STATUS<span class="w">   </span>ROLES<span class="w">           </span>AGE<span class="w">   </span>VERSION<span class="w">       </span>INTERNAL-IP<span class="w">   </span>EXTERNAL-IP<span class="w">   </span>OS-IMAGE<span class="w">             </span>KERNEL-VERSION<span class="w">    </span>CONTAINER-RUNTIME
-ip-10-0-49-188.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">    </span>control-plane<span class="w">   </span>52m<span class="w">   </span>v1.26.2+k0s<span class="w">   </span><span class="m">10</span>.0.49.188<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1022-aws<span class="w">   </span>docker://20.10.16
-ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">    </span>&lt;none&gt;<span class="w">          </span>12s<span class="w">   </span>v1.26.2+k0s<span class="w">   </span><span class="m">10</span>.0.62.250<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1017-aws<span class="w">   </span>docker://20.10.16
+ip-10-0-49-188.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">    </span>control-plane<span class="w">   </span>52m<span class="w">   </span>v1.26.3+k0s<span class="w">   </span><span class="m">10</span>.0.49.188<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1022-aws<span class="w">   </span>docker://20.10.16
+ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">    </span>&lt;none&gt;<span class="w">          </span>12s<span class="w">   </span>v1.26.3+k0s<span class="w">   </span><span class="m">10</span>.0.62.250<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1017-aws<span class="w">   </span>docker://20.10.16
 </code></pre></div>
 <p>cordon and drain the nodes (migrate one by one):</p>
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>k0s<span class="w"> </span>kubectl<span class="w"> </span>cordon<span class="w"> </span>ip-10-0-62-250.eu-west-1.compute.internal<span class="w"> </span>
@@ -1464,8 +1588,8 @@ sudo<span class="w"> </span>k0s<span class="w"> </span>kubectl<span class="w"> <
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>k0s<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>nodes<span class="w"> </span>-o<span class="w"> </span>wide
 
 NAME<span class="w">                                        </span>STATUS<span class="w">                     </span>ROLES<span class="w">           </span>AGE<span class="w">     </span>VERSION<span class="w">       </span>INTERNAL-IP<span class="w">   </span>EXTERNAL-IP<span class="w">   </span>OS-IMAGE<span class="w">             </span>KERNEL-VERSION<span class="w">    </span>CONTAINER-RUNTIME
-ip-10-0-49-188.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">                      </span>control-plane<span class="w">   </span>56m<span class="w">     </span>v1.26.2+k0s<span class="w">   </span><span class="m">10</span>.0.49.188<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1022-aws<span class="w">   </span>docker://20.10.16
-ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready,SchedulingDisabled<span class="w">   </span>&lt;none&gt;<span class="w">          </span>3m40s<span class="w">   </span>v1.26.2+k0s<span class="w">   </span><span class="m">10</span>.0.62.250<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1017-aws<span class="w">   </span>docker://20.10.16
+ip-10-0-49-188.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">                      </span>control-plane<span class="w">   </span>56m<span class="w">     </span>v1.26.3+k0s<span class="w">   </span><span class="m">10</span>.0.49.188<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1022-aws<span class="w">   </span>docker://20.10.16
+ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready,SchedulingDisabled<span class="w">   </span>&lt;none&gt;<span class="w">          </span>3m40s<span class="w">   </span>v1.26.3+k0s<span class="w">   </span><span class="m">10</span>.0.62.250<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1017-aws<span class="w">   </span>docker://20.10.16
 </code></pre></div>
 <p>Stop k0s on the node:</p>
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>k0s<span class="w"> </span>stop
@@ -1533,8 +1657,8 @@ fb888cbc5ae0<span class="w">   </span>k8s_POD_kube-router-qlkgg_kube-system_9a1b
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>k0s<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>nodes<span class="w"> </span>-o<span class="w"> </span>wide
 
 NAME<span class="w">                                        </span>STATUS<span class="w">                     </span>ROLES<span class="w">           </span>AGE<span class="w">    </span>VERSION<span class="w">       </span>INTERNAL-IP<span class="w">   </span>EXTERNAL-IP<span class="w">   </span>OS-IMAGE<span class="w">             </span>KERNEL-VERSION<span class="w">    </span>CONTAINER-RUNTIME
-ip-10-0-49-188.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">                      </span>control-plane<span class="w">   </span>117m<span class="w">   </span>v1.26.2+k0s<span class="w">   </span><span class="m">10</span>.0.49.188<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1022-aws<span class="w">   </span>docker://20.10.16
-ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready,SchedulingDisabled<span class="w">   </span>&lt;none&gt;<span class="w">          </span>64m<span class="w">    </span>v1.26.2+k0s<span class="w">   </span><span class="m">10</span>.0.62.250<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1017-aws<span class="w">   </span>docker://20.10.16
+ip-10-0-49-188.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">                      </span>control-plane<span class="w">   </span>117m<span class="w">   </span>v1.26.3+k0s<span class="w">   </span><span class="m">10</span>.0.49.188<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1022-aws<span class="w">   </span>docker://20.10.16
+ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready,SchedulingDisabled<span class="w">   </span>&lt;none&gt;<span class="w">          </span>64m<span class="w">    </span>v1.26.3+k0s<span class="w">   </span><span class="m">10</span>.0.62.250<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1017-aws<span class="w">   </span>docker://20.10.16
 </code></pre></div>
 <h3 id="uncordon-the-node">Uncordon the Node<a class="headerlink" href="#uncordon-the-node" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>k0s<span class="w"> </span>kubectl<span class="w"> </span>uncordon<span class="w"> </span>ip-10-0-62-250.eu-west-1.compute.internal
@@ -1545,8 +1669,8 @@ node/ip-10-0-62-250.eu-west-1.compute.internal<span class="w"> </span>uncordoned
 <div class="highlight"><pre><span></span><code>sudo<span class="w"> </span>k0s<span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>nodes<span class="w"> </span>-o<span class="w"> </span>wide
 
 NAME<span class="w">                                        </span>STATUS<span class="w">   </span>ROLES<span class="w">           </span>AGE<span class="w">    </span>VERSION<span class="w">       </span>INTERNAL-IP<span class="w">   </span>EXTERNAL-IP<span class="w">   </span>OS-IMAGE<span class="w">             </span>KERNEL-VERSION<span class="w">    </span>CONTAINER-RUNTIME
-ip-10-0-49-188.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">    </span>control-plane<span class="w">   </span>119m<span class="w">   </span>v1.26.2+k0s<span class="w">   </span><span class="m">10</span>.0.49.188<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1022-aws<span class="w">   </span>docker://20.10.16
-ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">    </span>&lt;none&gt;<span class="w">          </span>66m<span class="w">    </span>v1.26.2+k0s<span class="w">   </span><span class="m">10</span>.0.62.250<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1017-aws<span class="w">   </span>docker://20.10.16
+ip-10-0-49-188.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">    </span>control-plane<span class="w">   </span>119m<span class="w">   </span>v1.26.3+k0s<span class="w">   </span><span class="m">10</span>.0.49.188<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1022-aws<span class="w">   </span>docker://20.10.16
+ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready<span class="w">    </span>&lt;none&gt;<span class="w">          </span>66m<span class="w">    </span>v1.26.3+k0s<span class="w">   </span><span class="m">10</span>.0.62.250<span class="w">   </span>&lt;none&gt;<span class="w">        </span>Ubuntu<span class="w"> </span><span class="m">20</span>.04.4<span class="w"> </span>LTS<span class="w">   </span><span class="m">5</span>.13.0-1017-aws<span class="w">   </span>docker://20.10.16
 </code></pre></div>
 
 
@@ -1623,7 +1747,7 @@ ip-10-0-62-250.eu-west-1.compute.internal<span class="w">   </span>Ready<span cl
     <script id="__config" type="application/json">{"base": "..", "features": ["toc.autohide", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.208ed371.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"default": "stable", "provider": "mike"}}</script>
     
     
-      <script src="../assets/javascripts/bundle.19047be9.min.js"></script>
+      <script src="../assets/javascripts/bundle.407015b8.min.js"></script>
       
     
   </body>
