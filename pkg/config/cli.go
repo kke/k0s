@@ -393,15 +393,6 @@ func CallParentPersistentPreRun(c *cobra.Command, args []string) error {
 	return nil
 }
 
-func PreRunValidateConfig(k0sVars constant.CfgVars) error {
-	loadingRules := ClientConfigLoadingRules{K0sVars: k0sVars}
-	_, err := loadingRules.ParseRuntimeConfig()
-	if err != nil {
-		return fmt.Errorf("failed to get config: %v", err)
-	}
-	return nil
-}
-
 func (o *CLIOptions) storageSpec() *v1beta1.StorageSpec {
 	switch o.K0sVars.DefaultStorageType {
 	case v1beta1.KineStorageType:
