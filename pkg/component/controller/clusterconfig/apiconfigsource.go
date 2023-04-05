@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/imdario/mergo"
 	k0sclient "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/constant"
@@ -37,7 +38,7 @@ type apiConfigSource struct {
 	initialConfig *v1beta1.ClusterConfig
 }
 
-func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface, initialConfig *v1beta1.ClusterConfig) (ConfigSource, error) {
+func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface, initialConfig *v1beta1.ClusterConfig, bootstrapConfig *v1beta1.ClusterConfig) (ConfigSource, error) {
 	configClient, err := kubeClientFactory.GetConfigClient()
 	if err != nil {
 		return nil, err
@@ -83,6 +84,9 @@ func (a *apiConfigSource) Release(ctx context.Context) {
 			if lastObservedVersion != cfg.ResourceVersion {
 				log.Debugf("Cluster configuration update to resource version %q", cfg.ResourceVersion)
 				lastObservedVersion = cfg.ResourceVersion
+				if err := mergo.Merge(cfg, a.initialConfig); err != nil {
+					log.WithError(err).Errorf("failed to merge bootstrap config over the dynamic config")
+				}
 				a.resultChan <- cfg
 			}
 			return false, nil

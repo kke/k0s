@@ -314,7 +314,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	var configSource clusterconfig.ConfigSource
 	// For backwards compatibility, use file as config source by default
 	if c.EnableDynamicConfig {
-		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory, c.InitialConfig().GetClusterWideConfig())
+		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory, c.InitialConfig().GetClusterWideConfig(), c.BootstrapConfig())
 	} else {
 		configSource, err = clusterconfig.NewStaticSource(c.InitialConfig())
 	}

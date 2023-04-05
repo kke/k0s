@@ -429,9 +429,6 @@ func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
 			Network: &Network{
 				ServiceCIDR:   network.ServiceCIDR,
 				ClusterDomain: network.ClusterDomain,
-				KubeProxy:     network.KubeProxy,  // todo: added in config load refactoring
-				KubeRouter:    network.KubeRouter, // validate they should be here
-				DualStack:     network.DualStack,  // and nilled in GetClusterWideConfig
 			},
 			Install: cfg.Spec.Install,
 		},
@@ -455,12 +452,10 @@ func (c *ClusterConfig) GetClusterWideConfig() *ClusterConfig {
 	if cfg != nil && cfg.Spec != nil {
 		cfg.Spec.API = nil
 		cfg.Spec.Storage = nil
+		cfg.Spec.Network = nil
 		if cfg.Spec.Network != nil {
 			cfg.Spec.Network.ServiceCIDR = ""
 			cfg.Spec.Network.ClusterDomain = ""
-			cfg.Spec.Network.DualStack = nil
-			cfg.Spec.Network.KubeProxy = nil
-			cfg.Spec.Network.KubeRouter = nil
 		}
 		cfg.Spec.Install = nil
 	}
