@@ -115,22 +115,57 @@ type ControllerOptions struct {
 	KubeControllerManagerExtraArgs  string
 }
 
-func (c *ControllerOptions) Copy() ControllerOptions {
-	disableComponents := make([]string, len(c.DisableComponents))
-	copy(disableComponents, c.DisableComponents)
+func (o *ControllerOptions) Copy() ControllerOptions {
+	disableComponents := make([]string, len(o.DisableComponents))
+	copy(disableComponents, o.DisableComponents)
 
 	return ControllerOptions{
-		EnableWorker:                    c.EnableWorker,
-		SingleNode:                      c.SingleNode,
-		NoTaints:                        c.NoTaints,
+		EnableWorker:                    o.EnableWorker,
+		SingleNode:                      o.SingleNode,
+		NoTaints:                        o.NoTaints,
 		DisableComponents:               disableComponents,
-		EnableK0sCloudProvider:          c.EnableK0sCloudProvider,
-		K0sCloudProviderPort:            c.K0sCloudProviderPort,
-		K0sCloudProviderUpdateFrequency: c.K0sCloudProviderUpdateFrequency,
-		EnableDynamicConfig:             c.EnableDynamicConfig,
-		EnableMetricsScraper:            c.EnableMetricsScraper,
-		KubeControllerManagerExtraArgs:  c.KubeControllerManagerExtraArgs,
+		EnableK0sCloudProvider:          o.EnableK0sCloudProvider,
+		K0sCloudProviderPort:            o.K0sCloudProviderPort,
+		K0sCloudProviderUpdateFrequency: o.K0sCloudProviderUpdateFrequency,
+		EnableDynamicConfig:             o.EnableDynamicConfig,
+		EnableMetricsScraper:            o.EnableMetricsScraper,
+		KubeControllerManagerExtraArgs:  o.KubeControllerManagerExtraArgs,
 	}
+}
+
+func (o *ControllerOptions) Normalize() error {
+	// Normalize component names
+	var disabledComponents []string
+	for _, disabledComponent := range o.DisableComponents {
+		switch disabledComponent {
+		case constant.APIConfigComponentName:
+			logrus.Warnf("Usage of deprecated component name %q, please switch to %q",
+				constant.APIConfigComponentName, "--enable-dynamic-config=false",
+			)
+			if o.EnableDynamicConfig {
+				logrus.Warnf("Cannot disable component %q, because %q is selected",
+					constant.APIConfigComponentName, "--enable-dynamic-config",
+				)
+			}
+
+		case constant.KubeletConfigComponentName:
+			logrus.Warnf("Usage of deprecated component name %q, please switch to %q",
+				constant.KubeletConfigComponentName, constant.WorkerConfigComponentName,
+			)
+			disabledComponent = constant.WorkerConfigComponentName
+		}
+
+		if !slices.Contains(availableComponents, disabledComponent) {
+			return fmt.Errorf("unknown component %s", disabledComponent)
+		}
+
+		if !slices.Contains(disabledComponents, disabledComponent) {
+			disabledComponents = append(disabledComponents, disabledComponent)
+		}
+	}
+	o.DisableComponents = disabledComponents
+
+	return nil
 }
 
 // Shared worker cli flags
@@ -178,41 +213,6 @@ func (w *WorkerOptions) Copy() WorkerOptions {
 		WorkerProfile:    w.WorkerProfile,
 		IPTablesMode:     w.IPTablesMode,
 	}
-}
-
-func (o *ControllerOptions) Normalize() error {
-	// Normalize component names
-	var disabledComponents []string
-	for _, disabledComponent := range o.DisableComponents {
-		switch disabledComponent {
-		case constant.APIConfigComponentName:
-			logrus.Warnf("Usage of deprecated component name %q, please switch to %q",
-				constant.APIConfigComponentName, "--enable-dynamic-config=false",
-			)
-			if o.EnableDynamicConfig {
-				logrus.Warnf("Cannot disable component %q, because %q is selected",
-					constant.APIConfigComponentName, "--enable-dynamic-config",
-				)
-			}
-
-		case constant.KubeletConfigComponentName:
-			logrus.Warnf("Usage of deprecated component name %q, please switch to %q",
-				constant.KubeletConfigComponentName, constant.WorkerConfigComponentName,
-			)
-			disabledComponent = constant.WorkerConfigComponentName
-		}
-
-		if !slices.Contains(availableComponents, disabledComponent) {
-			return fmt.Errorf("unknown component %s", disabledComponent)
-		}
-
-		if !slices.Contains(disabledComponents, disabledComponent) {
-			disabledComponents = append(disabledComponents, disabledComponent)
-		}
-	}
-	o.DisableComponents = disabledComponents
-
-	return nil
 }
 
 func DefaultLogLevels() map[string]string {
