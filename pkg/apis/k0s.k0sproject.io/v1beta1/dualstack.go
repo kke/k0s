@@ -24,6 +24,6 @@ type DualStack struct {
 }
 
 // DefaultDualStack builds default values
-func DefaultDualStack() DualStack {
-	return DualStack{}
+func DefaultDualStack() *DualStack {
+	return &DualStack{}
 }

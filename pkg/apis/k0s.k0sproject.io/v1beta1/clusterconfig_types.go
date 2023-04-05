@@ -384,7 +384,7 @@ func (c *ClusterConfig) Validate() (errs []error) {
 	return errs
 }
 
-// ValidationError returns a single error with all validation errors in one error
+// ValidationError returns a single error with all validation errors joined into one or nil if there are none
 func (c *ClusterConfig) ValidationError() error {
 	var messages []string
 
@@ -403,31 +403,39 @@ func (c *ClusterConfig) ValidationError() error {
 
 // GetBootstrappingConfig returns a ClusterConfig object stripped of Cluster-Wide Settings
 func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
-	storageSpec := c.Spec.Storage
+	if c == nil {
+		return nil
+	}
+
+	cfg := c.DeepCopy()
+	storage := cfg.Spec.Storage
+	network := cfg.Spec.Network
 
 	var etcdConfig *EtcdConfig
-	if storageSpec.Type == EtcdStorageType {
+	if storage.Type == EtcdStorageType {
 		etcdConfig = &EtcdConfig{
-			ExternalCluster: storageSpec.Etcd.ExternalCluster,
-			PeerAddress:     storageSpec.Etcd.PeerAddress,
-			ExtraArgs:       storageSpec.Etcd.ExtraArgs,
+			ExternalCluster: storage.Etcd.ExternalCluster,
+			PeerAddress:     storage.Etcd.PeerAddress,
+			ExtraArgs:       storage.Etcd.ExtraArgs,
 		}
-		c.Spec.Storage.Etcd = etcdConfig
+		cfg.Spec.Storage.Etcd = etcdConfig
 	}
 	return &ClusterConfig{
-		ObjectMeta: c.ObjectMeta,
-		TypeMeta:   c.TypeMeta,
+		ObjectMeta: cfg.ObjectMeta,
+		TypeMeta:   cfg.TypeMeta,
 		Spec: &ClusterSpec{
-			API:     c.Spec.API,
-			Storage: storageSpec,
+			API:     cfg.Spec.API,
+			Storage: storage,
 			Network: &Network{
-				ServiceCIDR:   c.Spec.Network.ServiceCIDR,
-				DualStack:     c.Spec.Network.DualStack,
-				ClusterDomain: c.Spec.Network.ClusterDomain,
+				ServiceCIDR:   network.ServiceCIDR,
+				ClusterDomain: network.ClusterDomain,
+				KubeProxy:     network.KubeProxy,  // todo: added in config load refactoring
+				KubeRouter:    network.KubeRouter, // validate they should be here
+				DualStack:     network.DualStack,  // and nilled in GetClusterWideConfig
 			},
-			Install: c.Spec.Install,
+			Install: cfg.Spec.Install,
 		},
-		Status: c.Status,
+		Status: cfg.Status,
 	}
 }
 
@@ -440,15 +448,21 @@ func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
 // - Network.ClusterDomain
 // - Install
 func (c *ClusterConfig) GetClusterWideConfig() *ClusterConfig {
-	c = c.DeepCopy()
-	if c != nil && c.Spec != nil {
-		c.Spec.API = nil
-		c.Spec.Storage = nil
-		if c.Spec.Network != nil {
-			c.Spec.Network.ServiceCIDR = ""
-			c.Spec.Network.ClusterDomain = ""
+	if c == nil {
+		return nil
+	}
+	cfg := c.DeepCopy()
+	if cfg != nil && cfg.Spec != nil {
+		cfg.Spec.API = nil
+		cfg.Spec.Storage = nil
+		if cfg.Spec.Network != nil {
+			cfg.Spec.Network.ServiceCIDR = ""
+			cfg.Spec.Network.ClusterDomain = ""
+			cfg.Spec.Network.DualStack = nil
+			cfg.Spec.Network.KubeProxy = nil
+			cfg.Spec.Network.KubeRouter = nil
 		}
-		c.Spec.Install = nil
+		cfg.Spec.Install = nil
 	}
 
 	return c
@@ -456,9 +470,9 @@ func (c *ClusterConfig) GetClusterWideConfig() *ClusterConfig {
 
 // CRValidator is used to make sure a config CR is created with correct values
 func (c *ClusterConfig) CRValidator() *ClusterConfig {
-	copy := c.DeepCopy()
-	copy.ObjectMeta.Name = "k0s"
-	copy.ObjectMeta.Namespace = "kube-system"
+	cfg := c.DeepCopy()
+	cfg.ObjectMeta.Name = "k0s"
+	cfg.ObjectMeta.Namespace = "kube-system"
 
-	return copy
+	return cfg
 }
