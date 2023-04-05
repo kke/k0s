@@ -426,10 +426,7 @@ func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
 		Spec: &ClusterSpec{
 			API:     cfg.Spec.API,
 			Storage: storage,
-			Network: &Network{
-				ServiceCIDR:   network.ServiceCIDR,
-				ClusterDomain: network.ClusterDomain,
-			},
+			Network: network,
 			Install: cfg.Spec.Install,
 		},
 		Status: cfg.Status,
