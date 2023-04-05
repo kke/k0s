@@ -18,6 +18,8 @@ import (
 	"sync"
 
 	apclient "github.com/k0sproject/k0s/pkg/apis/autopilot.k0sproject.io/v1beta2/clientset"
+	cfgClient "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset"
+	k0sv1beta1 "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
 	extclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 
 	"k8s.io/client-go/kubernetes"
@@ -27,6 +29,7 @@ import (
 // FactoryInterface is a collection of kubernetes clientset interfaces.
 type FactoryInterface interface {
 	GetClient() (kubernetes.Interface, error)
+	GetConfigClient() (k0sv1beta1.K0sV1beta1Interface, error)
 	GetAutopilotClient() (apclient.Interface, error)
 	GetExtensionClient() (extclient.ApiextensionsV1Interface, error)
 	RESTConfig() *rest.Config
@@ -34,6 +37,7 @@ type FactoryInterface interface {
 
 type clientFactory struct {
 	client           kubernetes.Interface
+	clientConfig     k0sv1beta1.K0sV1beta1Interface
 	clientAutopilot  apclient.Interface
 	clientExtensions extclient.ApiextensionsV1Interface
 	restConfig       *rest.Config
@@ -65,6 +69,26 @@ func (cf *clientFactory) GetClient() (kubernetes.Interface, error) {
 	cf.client = client
 
 	return cf.client, nil
+}
+
+// GetConfigClient returns the ClusterConfig clientset
+func (cf *clientFactory) GetConfigClient() (k0sv1beta1.K0sV1beta1Interface, error) {
+	cf.mutex.Lock()
+	defer cf.mutex.Unlock()
+	var err error
+
+	if cf.clientConfig != nil {
+		return cf.clientConfig, nil
+	}
+
+	client, err := cfgClient.NewForConfig(cf.restConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	cf.clientConfig = client.K0sV1beta1()
+
+	return cf.clientConfig, nil
 }
 
 // GetAutopilotClient returns the clientset for autopilot

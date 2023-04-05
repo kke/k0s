@@ -27,20 +27,18 @@ import (
 	"time"
 
 	"github.com/k0sproject/k0s/internal/pkg/dir"
-	cfgClient "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset"
-	k0sv1beta1 "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
 
+	k0sv1beta1 "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/autopilot/client"
 	"github.com/k0sproject/k0s/pkg/component/manager"
 	"github.com/k0sproject/k0s/pkg/component/prober"
-	"github.com/k0sproject/k0s/pkg/config"
+	"github.com/k0sproject/k0s/pkg/constant"
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 type Stater interface {
@@ -130,9 +128,10 @@ func (s *Status) Stop() error {
 }
 
 type statusHandler struct {
-	Status       *Status
-	client       kubernetes.Interface
-	configClient k0sv1beta1.K0sV1beta1Interface
+	Status        *Status
+	client        kubernetes.Interface
+	configClient  k0sv1beta1.K0sV1beta1Interface
+	clientFactory client.FactoryInterface
 }
 
 // ServerHTTP implementation of handler interface
@@ -156,48 +155,45 @@ func (sh *statusHandler) getCurrentStatus(ctx context.Context) K0sStatus {
 		return status
 	}
 
-	if sh.configClient == nil {
-		if config, err := clientcmd.BuildConfigFromFlags("", status.K0sVars.AdminKubeConfigPath); err == nil {
-			if client, err := cfgClient.NewForConfig(config); err == nil {
-				sh.configClient = client.K0sV1beta1()
-			}
-		}
-	}
-
-	if sh.configClient != nil {
-		runtimeConfig, err := config.FromAPI(sh.configClient)
-		if err == nil {
-			status.ClusterConfig = runtimeConfig
-			status.BootstrapConfig = status.BootstrapConfig.GetBootstrappingConfig()
-		} else {
-			status.ClusterConfig = nil
-		}
-	}
-
-	if sh.client == nil {
-		kubeClient, err := sh.buildWorkerSideKubeAPIClient(ctx)
-		if err != nil {
-			status.WorkerToAPIConnectionStatus.Message = fmt.Sprintf("failed to create kube-api client required for kube-api status reports, probably kubelet failed to init: %v", err)
-			return status
-		}
-		sh.client = kubeClient
-	}
-	_, err := sh.client.CoreV1().Nodes().List(context.Background(), v1.ListOptions{})
+	kubeClient, err := sh.getWorkerSideKubeAPIClient(ctx)
 	if err != nil {
-		status.WorkerToAPIConnectionStatus.Message = err.Error()
+		status.WorkerToAPIConnectionStatus.Message = fmt.Sprintf("failed to create kube-api client required for kube-api status reports, probably kubelet failed to init: %v", err)
+	} else {
+		_, err := kubeClient.CoreV1().Nodes().List(context.Background(), v1.ListOptions{})
+		if err != nil {
+			status.WorkerToAPIConnectionStatus.Message = err.Error()
+		} else {
+			status.WorkerToAPIConnectionStatus.Success = true
+		}
+	}
+
+	cfgClient, err := sh.getConfigAPIClient(ctx)
+	if err != nil {
+		status.ClusterConfig = nil
 		return status
 	}
-	status.WorkerToAPIConnectionStatus.Success = true
+
+	clusterConfigs := cfgClient.ClusterConfigs(constant.ClusterConfigNamespace)
+	cfg, err := clusterConfigs.Get(ctx, "k0s", v1.GetOptions{TypeMeta: v1.TypeMeta{APIVersion: "k0s.k0sproject.io/v1beta1", Kind: "clusterconfigs"}})
+	if err == nil {
+		status.ClusterConfig = cfg
+	} else {
+		status.ClusterConfig = nil
+	}
 
 	return status
 }
 
-func (sh *statusHandler) buildWorkerSideKubeAPIClient(ctx context.Context) (kubernetes.Interface, error) {
+func (sh *statusHandler) getClientFactory(ctx context.Context) (client.FactoryInterface, error) {
+	if sh.clientFactory != nil {
+		return sh.clientFactory, nil
+	}
+
 	var restConfig *rest.Config
 	var err error
-	timeout, cancel := context.WithTimeout(ctx, defaultPollTimeout)
+	ctx, cancel := context.WithTimeout(ctx, defaultPollTimeout)
 	defer cancel()
-	if err := wait.PollUntilWithContext(timeout, defaultPollDuration, func(ctx context.Context) (done bool, err error) {
+	if err := wait.PollUntilWithContext(ctx, defaultPollDuration, func(ctx context.Context) (done bool, err error) {
 		if restConfig, err = sh.Status.CertManager.GetRestConfig(); err != nil {
 			return false, nil
 		}
@@ -209,9 +205,39 @@ func (sh *statusHandler) buildWorkerSideKubeAPIClient(ctx context.Context) (kube
 	if err != nil {
 		return nil, err
 	}
+	sh.clientFactory = factory
+	return factory, nil
+}
+
+func (sh *statusHandler) getWorkerSideKubeAPIClient(ctx context.Context) (kubernetes.Interface, error) {
+	if sh.client != nil {
+		return sh.client, nil
+	}
+	factory, err := sh.getClientFactory(ctx)
+	if err != nil {
+		return nil, err
+	}
 	client, err := factory.GetClient()
 	if err != nil {
 		return nil, err
 	}
+
+	sh.client = client
+	return client, nil
+}
+
+func (sh *statusHandler) getConfigAPIClient(ctx context.Context) (k0sv1beta1.K0sV1beta1Interface, error) {
+	if sh.configClient != nil {
+		return sh.configClient, nil
+	}
+	factory, err := sh.getClientFactory(ctx)
+	if err != nil {
+		return nil, err
+	}
+	client, err := factory.GetConfigClient()
+	if err != nil {
+		return nil, err
+	}
+	sh.configClient = client
 	return client, nil
 }
