@@ -54,17 +54,17 @@ type KineConfig struct {
 	DataSource string `json:"dataSource"`
 }
 
-// DefaultStorageSpec creates StorageSpec with sane defaults
-func DefaultStorageSpec() *StorageSpec {
+// EtcdStorageSpec creates StorageSpec with sane defaults
+func EtcdStorageSpec() *StorageSpec {
 	return &StorageSpec{
 		Type: EtcdStorageType,
 		Etcd: DefaultEtcdConfig(),
 	}
 }
 
-// EtcdStorageSpec returns the DefaultStorageSpec which for now is for etcd
-func EtcdStorageSpec() *StorageSpec {
-	return DefaultStorageSpec()
+// DefaultStorageSpec returns the default storage spec which for now is for etcd
+func DefaultStorageSpec() *StorageSpec {
+	return EtcdStorageSpec()
 }
 
 // KineStorageSpec returns a kine storage spec based on the given datadir
