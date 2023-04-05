@@ -328,8 +328,8 @@ func FileInputFlag() *pflag.FlagSet {
 
 func DefaultCLIOptions() CLIOptions {
 	o := CLIOptions{
-		ControllerOptions: controllerOpts,
-		WorkerOptions:     workerOpts,
+		ControllerOptions: controllerOpts.Copy(),
+		WorkerOptions:     workerOpts.Copy(),
 
 		CfgFile:       CfgFile,
 		DataDir:       DataDir,
