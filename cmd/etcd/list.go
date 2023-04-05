@@ -29,8 +29,9 @@ import (
 
 func etcdListCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "member-list",
-		Short: "Returns etcd cluster members list",
+		Use:               "member-list",
+		Short:             "Returns etcd cluster members list",
+		PersistentPreRunE: config.CallParentPersistentPreRun,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 			ctx := context.Background()

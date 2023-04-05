@@ -30,8 +30,9 @@ func etcdLeaveCmd() *cobra.Command {
 	var etcdPeerAddress string
 
 	cmd := &cobra.Command{
-		Use:   "leave",
-		Short: "Sign off a given etc node from etcd cluster",
+		Use:               "leave",
+		Short:             "Sign off a given etc node from etcd cluster",
+		PersistentPreRunE: config.CallParentPersistentPreRun,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 			bootstrapConfig := c.BootstrapConfig()
