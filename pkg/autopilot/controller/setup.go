@@ -21,6 +21,7 @@ import (
 	"time"
 
 	apv1beta2 "github.com/k0sproject/k0s/pkg/apis/autopilot.k0sproject.io/v1beta2"
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	apcli "github.com/k0sproject/k0s/pkg/autopilot/client"
 	apcomm "github.com/k0sproject/k0s/pkg/autopilot/common"
 	apconst "github.com/k0sproject/k0s/pkg/autopilot/constant"
@@ -206,7 +207,19 @@ func getControllerAPIAddress() (string, error) {
 		return "", err
 	}
 
-	return status.ClusterConfig.Spec.API.Address, nil
+	var cfg *v1beta1.ClusterConfig
+
+	if status.ClusterConfig != nil {
+		cfg = status.ClusterConfig
+	} else {
+		cfg = status.BootstrapConfig
+	}
+
+	if cfg == nil {
+		return "", fmt.Errorf("unable to get cluster config")
+	}
+
+	return cfg.Spec.API.Address, nil
 }
 
 // waitForControlNodesCRD waits until the controlnodes CRD is established for
