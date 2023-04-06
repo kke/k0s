@@ -17,17 +17,17 @@ limitations under the License.
 package token
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/token"
 
-	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/util/retry"
-
+	"github.com/avast/retry-go"
 	"github.com/spf13/cobra"
 )
 
@@ -45,11 +45,8 @@ func tokenCreateCmd() *cobra.Command {
 k0s token create --role worker --expiry 10m  //sets expiration time to 10 minutes
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			err := checkTokenRole(createTokenRole)
-			if err != nil {
-				cmd.SilenceUsage = true
-			}
-			return err
+			cmd.SilenceUsage = true
+			return checkTokenRole(createTokenRole)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
@@ -58,34 +55,43 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 				return err
 			}
 
-			var bootstrapToken string
-			// we will retry every second for two minutes and then error
-			err = retry.OnError(wait.Backoff{
-				Steps:    120,
-				Duration: 1 * time.Second,
-				Factor:   1.0,
-				Jitter:   0.1,
-			}, func(err error) bool {
-				return waitCreate
-			}, func() error {
-				statusInfo, err := status.GetStatusInfo(c.StatusSocket)
-				if err != nil {
-					return fmt.Errorf("failed to get k0s status: %w", err)
-				}
-				if statusInfo == nil {
-					return errors.New("k0s is not running")
-				}
-				if err = ensureTokenCreationAcceptable(createTokenRole, statusInfo); err != nil {
-					waitCreate = false
-					cmd.SilenceUsage = true
-					return err
-				}
+			var statusInfo *status.K0sStatus
+			ctx := cmd.Context()
+			if !waitCreate {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithTimeout(ctx, 2*time.Minute)
+				defer cancel()
+			}
 
-				bootstrapToken, err = token.CreateKubeletBootstrapToken(cmd.Context(), c.BootstrapConfig().Spec.API, c.K0sVars, createTokenRole, expiry)
-				return err
-			})
+			// we will retry every second for two minutes and then error
+			err = retry.Do(
+				func() error {
+					info, err := status.GetStatusInfo(c.StatusSocket)
+					if err != nil {
+						return fmt.Errorf("failed to get k0s status: %w", err)
+					}
+					statusInfo = info
+
+					return nil
+				},
+				retry.Context(ctx),
+				retry.LastErrorOnly(true),
+				retry.Delay(1*time.Second),
+			)
 			if err != nil {
 				return err
+			}
+			if statusInfo == nil {
+				return errors.New("failed to get k0s status: status info is nil")
+			}
+
+			if err = ensureTokenCreationAcceptable(createTokenRole, statusInfo, c.BootstrapConfig().Spec.Storage); err != nil {
+				return err
+			}
+
+			bootstrapToken, err := token.CreateKubeletBootstrapToken(cmd.Context(), c.BootstrapConfig().Spec.API, c.K0sVars, createTokenRole, expiry)
+			if err != nil {
+				return fmt.Errorf("failed to create bootstrap token: %w", err)
 			}
 			fmt.Fprintln(cmd.OutOrStdout(), bootstrapToken)
 			return nil
@@ -100,11 +106,11 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 	return cmd
 }
 
-func ensureTokenCreationAcceptable(createTokenRole string, statusInfo *status.K0sStatus) error {
+func ensureTokenCreationAcceptable(createTokenRole string, statusInfo *status.K0sStatus, storageSpec *v1beta1.StorageSpec) error {
 	if statusInfo.SingleNode {
 		return errors.New("refusing to create token: cannot join into a single node cluster")
 	}
-	if createTokenRole == token.RoleController && !statusInfo.GetConfig().Spec.Storage.IsJoinable() {
+	if createTokenRole == token.RoleController && !storageSpec.IsJoinable() {
 		return errors.New("refusing to create token: cannot join controller into current storage")
 	}
 
