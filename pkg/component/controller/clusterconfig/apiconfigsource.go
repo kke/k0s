@@ -33,9 +33,10 @@ import (
 var _ ConfigSource = (*apiConfigSource)(nil)
 
 type apiConfigSource struct {
-	configClient  k0sclient.ClusterConfigInterface
-	resultChan    chan *v1beta1.ClusterConfig
-	initialConfig *v1beta1.ClusterConfig
+	configClient    k0sclient.ClusterConfigInterface
+	resultChan      chan *v1beta1.ClusterConfig
+	initialConfig   *v1beta1.ClusterConfig
+	bootstrapConfig *v1beta1.ClusterConfig
 }
 
 func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface, initialConfig *v1beta1.ClusterConfig, bootstrapConfig *v1beta1.ClusterConfig) (ConfigSource, error) {
@@ -44,9 +45,10 @@ func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface, initi
 		return nil, err
 	}
 	a := &apiConfigSource{
-		configClient:  configClient,
-		resultChan:    make(chan *v1beta1.ClusterConfig, 1),
-		initialConfig: initialConfig,
+		configClient:    configClient,
+		resultChan:      make(chan *v1beta1.ClusterConfig, 1),
+		initialConfig:   initialConfig,
+		bootstrapConfig: bootstrapConfig,
 	}
 	return a, nil
 }
@@ -84,7 +86,7 @@ func (a *apiConfigSource) Release(ctx context.Context) {
 			if lastObservedVersion != cfg.ResourceVersion {
 				log.Debugf("Cluster configuration update to resource version %q", cfg.ResourceVersion)
 				lastObservedVersion = cfg.ResourceVersion
-				if err := mergo.Merge(cfg, a.initialConfig); err != nil {
+				if err := mergo.Merge(cfg, a.bootstrapConfig); err != nil {
 					log.WithError(err).Errorf("failed to merge bootstrap config over the dynamic config")
 				}
 				a.resultChan <- cfg

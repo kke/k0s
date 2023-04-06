@@ -28,16 +28,18 @@ import (
 
 	"github.com/k0sproject/k0s/internal/pkg/dir"
 
-	k0sv1beta1 "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/autopilot/client"
+	apclient "github.com/k0sproject/k0s/pkg/autopilot/client"
+
 	"github.com/k0sproject/k0s/pkg/component/manager"
 	"github.com/k0sproject/k0s/pkg/component/prober"
-	"github.com/k0sproject/k0s/pkg/constant"
+
+	kubeclient "k8s.io/client-go/kubernetes"
 
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
 
@@ -97,6 +99,12 @@ func (s *Status) Init(_ context.Context) error {
 	return nil
 }
 
+func (s *Status) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
+	s.L.Debug("reconcile method called")
+	s.StatusInformation.ClusterConfig = clusterConfig
+	return nil
+}
+
 // removeLeftovers tries to remove leftover sockets that nothing is listening on
 func removeLeftovers(socket string) {
 	_, err := net.Dial("unix", socket)
@@ -128,10 +136,10 @@ func (s *Status) Stop() error {
 }
 
 type statusHandler struct {
-	Status        *Status
-	client        kubernetes.Interface
-	configClient  k0sv1beta1.K0sV1beta1Interface
-	clientFactory client.FactoryInterface
+	Status *Status
+
+	client        kubeclient.Interface
+	clientFactory apclient.FactoryInterface
 }
 
 // ServerHTTP implementation of handler interface
@@ -151,6 +159,7 @@ const (
 
 func (sh *statusHandler) getCurrentStatus(ctx context.Context) K0sStatus {
 	status := sh.Status.StatusInformation
+
 	if !status.Workloads {
 		return status
 	}
@@ -165,20 +174,6 @@ func (sh *statusHandler) getCurrentStatus(ctx context.Context) K0sStatus {
 		} else {
 			status.WorkerToAPIConnectionStatus.Success = true
 		}
-	}
-
-	cfgClient, err := sh.getConfigAPIClient(ctx)
-	if err != nil {
-		status.ClusterConfig = nil
-		return status
-	}
-
-	clusterConfigs := cfgClient.ClusterConfigs(constant.ClusterConfigNamespace)
-	cfg, err := clusterConfigs.Get(ctx, "k0s", v1.GetOptions{TypeMeta: v1.TypeMeta{APIVersion: "k0s.k0sproject.io/v1beta1", Kind: "clusterconfigs"}})
-	if err == nil {
-		status.ClusterConfig = cfg
-	} else {
-		status.ClusterConfig = nil
 	}
 
 	return status
@@ -201,7 +196,7 @@ func (sh *statusHandler) getClientFactory(ctx context.Context) (client.FactoryIn
 	}); err != nil {
 		return nil, err
 	}
-	factory, err := client.NewClientFactory(restConfig)
+	factory, err := apclient.NewClientFactory(restConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +204,7 @@ func (sh *statusHandler) getClientFactory(ctx context.Context) (client.FactoryIn
 	return factory, nil
 }
 
-func (sh *statusHandler) getWorkerSideKubeAPIClient(ctx context.Context) (kubernetes.Interface, error) {
+func (sh *statusHandler) getWorkerSideKubeAPIClient(ctx context.Context) (kubeclient.Interface, error) {
 	if sh.client != nil {
 		return sh.client, nil
 	}
@@ -221,23 +216,6 @@ func (sh *statusHandler) getWorkerSideKubeAPIClient(ctx context.Context) (kubern
 	if err != nil {
 		return nil, err
 	}
-
 	sh.client = client
-	return client, nil
-}
-
-func (sh *statusHandler) getConfigAPIClient(ctx context.Context) (k0sv1beta1.K0sV1beta1Interface, error) {
-	if sh.configClient != nil {
-		return sh.configClient, nil
-	}
-	factory, err := sh.getClientFactory(ctx)
-	if err != nil {
-		return nil, err
-	}
-	client, err := factory.GetConfigClient()
-	if err != nil {
-		return nil, err
-	}
-	sh.configClient = client
 	return client, nil
 }
