@@ -49,10 +49,9 @@ type K0sStatus struct {
 func (k *K0sStatus) GetConfig() *v1beta1.ClusterConfig {
 	if k.ClusterConfig != nil {
 		cfg := k.ClusterConfig.DeepCopy()
-		if k.BootstrapConfig != nil {
-			mergo.Merge(cfg, k.BootstrapConfig)
+		if k.BootstrapConfig != nil && mergo.Merge(cfg, k.BootstrapConfig) == nil {
+			return cfg
 		}
-		return cfg
 	}
 	return k.BootstrapConfig
 }
