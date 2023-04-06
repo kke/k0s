@@ -104,7 +104,7 @@ func ensureTokenCreationAcceptable(createTokenRole string, statusInfo *status.K0
 	if statusInfo.SingleNode {
 		return errors.New("refusing to create token: cannot join into a single node cluster")
 	}
-	if createTokenRole == token.RoleController && !statusInfo.ClusterConfig.Spec.Storage.IsJoinable() {
+	if createTokenRole == token.RoleController && !statusInfo.GetConfig().Spec.Storage.IsJoinable() {
 		return errors.New("refusing to create token: cannot join controller into current storage")
 	}
 

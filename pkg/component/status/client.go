@@ -23,6 +23,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/imdario/mergo"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/component/prober"
 	"github.com/k0sproject/k0s/pkg/constant"
@@ -43,6 +44,17 @@ type K0sStatus struct {
 	ClusterConfig               *v1beta1.ClusterConfig
 	BootstrapConfig             *v1beta1.ClusterConfig
 	K0sVars                     constant.CfgVars
+}
+
+func (k *K0sStatus) GetConfig() *v1beta1.ClusterConfig {
+	if k.ClusterConfig != nil {
+		cfg := k.ClusterConfig.DeepCopy()
+		if k.BootstrapConfig != nil {
+			mergo.Merge(cfg, k.BootstrapConfig)
+		}
+		return cfg
+	}
+	return k.BootstrapConfig
 }
 
 type ProbeStatus struct {

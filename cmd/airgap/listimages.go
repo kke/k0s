@@ -20,7 +20,6 @@ import (
 	"fmt"
 
 	"github.com/k0sproject/k0s/pkg/airgap"
-	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 
@@ -37,19 +36,12 @@ func NewAirgapListImagesCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 
-			var clusterConfig *v1beta1.ClusterConfig
-
-			if k0sStatus, err := status.GetStatusInfo(c.StatusSocket); err == nil {
-				if k0sStatus.ClusterConfig != nil {
-					clusterConfig = k0sStatus.ClusterConfig
-				}
+			k0sStatus, err := status.GetStatusInfo(c.StatusSocket)
+			if err != nil {
+				return fmt.Errorf("failed to get status info: %w", err)
 			}
 
-			if clusterConfig == nil {
-				clusterConfig = c.InitialConfig()
-			}
-
-			for _, uri := range airgap.GetImageURIs(clusterConfig.Spec, all) {
+			for _, uri := range airgap.GetImageURIs(k0sStatus.GetConfig().Spec, all) {
 				fmt.Fprintln(cmd.OutOrStdout(), uri)
 			}
 
