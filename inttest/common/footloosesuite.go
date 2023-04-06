@@ -861,7 +861,9 @@ func (s *FootlooseSuite) ExtensionsClient(node string, k0sKubeconfigArgs ...stri
 // WaitForNodeReady wait that we see the given node in "Ready" state in kubernetes API
 func (s *FootlooseSuite) WaitForNodeReady(name string, kc kubernetes.Interface) error {
 	s.T().Logf("waiting to see %s ready in kube API", name)
-	if err := WaitForNodeReadyStatus(s.Context(), kc, name, corev1.ConditionTrue); err != nil {
+	ctx, cancel := context.WithTimeout(s.Context(), 5*time.Minute)
+	defer cancel()
+	if err := WaitForNodeReadyStatus(ctx, kc, name, corev1.ConditionTrue); err != nil {
 		return err
 	}
 	s.T().Logf("%s is ready in API", name)

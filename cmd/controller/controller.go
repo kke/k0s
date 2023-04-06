@@ -86,13 +86,7 @@ func NewControllerCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := config.GetCmdOpts(cmd)
 			c := &controllerCommand{opts, manager.New(prober.DefaultProber), manager.New(prober.DefaultProber)}
-			var validateConfig *v1beta1.ClusterConfig
-			if c.ControllerOptions.EnableDynamicConfig {
-				validateConfig = c.BootstrapConfig()
-			} else {
-				validateConfig = c.InitialConfig()
-			}
-			if err := validateConfig.ValidationError(); err != nil {
+			if err := c.InitialConfig().ValidationError(); err != nil {
 				return err
 			}
 
