@@ -148,7 +148,7 @@ type statusHandler struct {
 func (sh *statusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if sh.Status.StatusInformation.ClusterConfig == nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte("cluster config not yet available"))
+		_, _ = w.Write([]byte("cluster config not yet available"))
 		return
 	}
 
