@@ -410,6 +410,7 @@ func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
 	cfg := c.DeepCopy()
 	storage := cfg.Spec.Storage
 	network := cfg.Spec.Network
+	network.PodCIDR = ""
 
 	var etcdConfig *EtcdConfig
 	if storage.Type == EtcdStorageType {
@@ -442,22 +443,20 @@ func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
 // - Network.ClusterDomain
 // - Install
 func (c *ClusterConfig) GetClusterWideConfig() *ClusterConfig {
-	if c == nil {
+	if c == nil || c.Spec == nil {
 		return nil
 	}
-	cfg := c.DeepCopy()
-	if cfg != nil && cfg.Spec != nil {
-		cfg.Spec.API = nil
-		cfg.Spec.Storage = nil
-		cfg.Spec.Network = nil
-		if cfg.Spec.Network != nil {
-			cfg.Spec.Network.ServiceCIDR = ""
-			cfg.Spec.Network.ClusterDomain = ""
-		}
-		cfg.Spec.Install = nil
-	}
 
-	return c
+	cfg := c.DeepCopy()
+
+	cfg.Spec.API = nil
+	cfg.Spec.Storage = nil
+	cfg.Spec.Install = nil
+
+	cfg.Spec.Network.ServiceCIDR = ""
+	cfg.Spec.Network.ClusterDomain = ""
+
+	return cfg
 }
 
 // CRValidator is used to make sure a config CR is created with correct values

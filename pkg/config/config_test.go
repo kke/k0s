@@ -139,24 +139,10 @@ func TestNodeConfigWithAPIConfig(t *testing.T) {
 	opts := DefaultCLIOptions()
 	cfg := opts.BootstrapConfig()
 
-	testCases := []struct {
-		name     string
-		got      string
-		expected string
-	}{
-		{"API_external_address", cfg.Spec.API.ExternalAddress, "file-external-address"},
-		// PodCIDR is a cluster-wide setting. It shouldn't exist in Node config
-		{"Network_PodCIDR", cfg.Spec.Network.PodCIDR, ""},
-		{"Network_ServiceCIDR", cfg.Spec.Network.ServiceCIDR, "12.12.12.12/12"},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("%s eq %s", tc.name, tc.expected), func(t *testing.T) {
-			if tc.got != tc.expected {
-				t.Fatalf("expected to read '%s' for the %s test value. Got: %s", tc.expected, tc.name, tc.got)
-			}
-		})
-	}
+	assert.Equal(t, "file-external-address", cfg.Spec.API.ExternalAddress)
+	assert.Equal(t, "12.12.12.12/12", cfg.Spec.Network.ServiceCIDR)
+	// PodCIDR is a cluster-wide setting. It shouldn't exist in Node config
+	assert.Empty(t, cfg.Spec.Network.PodCIDR)
 }
 
 func TestSingleNodeConfig(t *testing.T) {
