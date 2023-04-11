@@ -80,18 +80,27 @@ func (n *Network) Validate() []error {
 		errors = append(errors, field.NotSupported(field.NewPath("provider"), n.Provider, []string{"kuberouter", "calico", "custom"}))
 	}
 
-	_, _, err := net.ParseCIDR(n.PodCIDR)
-	if err != nil {
-		errors = append(errors, field.Invalid(field.NewPath("podCIDR"), n.PodCIDR, "invalid CIDR address"))
+	// todo: in the "BootstrappingConfig" podCIDR is emptied - find out if it is intentional
+	if n.PodCIDR != "" {
+		_, _, err := net.ParseCIDR(n.PodCIDR)
+		if err != nil {
+			errors = append(errors, field.Invalid(field.NewPath("podCIDR"), n.PodCIDR, "invalid CIDR address"))
+		}
 	}
 
-	_, _, err = net.ParseCIDR(n.ServiceCIDR)
-	if err != nil {
-		errors = append(errors, field.Invalid(field.NewPath("serviceCIDR"), n.ServiceCIDR, "invalid CIDR address"))
+	// todo: in the "ClusterWideConfig" serviceCIDR is emptied - find out if it is intentional
+	if n.ServiceCIDR != "" {
+		_, _, err = net.ParseCIDR(n.ServiceCIDR)
+		if err != nil {
+			errors = append(errors, field.Invalid(field.NewPath("serviceCIDR"), n.ServiceCIDR, "invalid CIDR address"))
+		}
 	}
 
-	if !govalidator.IsDNSName(n.ClusterDomain) {
-		errors = append(errors, field.Invalid(field.NewPath("clusterDomain"), n.ClusterDomain, "invalid DNS name"))
+	// todo: in the "ClusterWideConfig" clusterdomain is emptied - find out if it is intentional
+	if n.ClusterDomain != "" {
+		if !govalidator.IsDNSName(n.ClusterDomain) {
+			errors = append(errors, field.Invalid(field.NewPath("clusterDomain"), n.ClusterDomain, "invalid DNS name"))
+		}
 	}
 
 	if n.DualStack.Enabled {
