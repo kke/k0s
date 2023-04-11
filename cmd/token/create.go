@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/token"
@@ -30,6 +29,8 @@ import (
 	"github.com/avast/retry-go"
 	"github.com/spf13/cobra"
 )
+
+var ErrRefusingToCreateToken = errors.New("refusing to create token: cannot join into a single node cluster")
 
 func tokenCreateCmd() *cobra.Command {
 	var (
@@ -50,6 +51,11 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
+
+			if createTokenRole == token.RoleController && !c.BootstrapConfig().Spec.Storage.IsJoinable() {
+				return fmt.Errorf("%w: cannot join controller into current storage", ErrRefusingToCreateToken)
+			}
+
 			expiry, err := time.ParseDuration(tokenExpiry)
 			if err != nil {
 				return err
@@ -85,11 +91,11 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 				return errors.New("failed to get k0s status: status info is nil")
 			}
 
-			if err = ensureTokenCreationAcceptable(createTokenRole, statusInfo, c.BootstrapConfig().Spec.Storage); err != nil {
-				return err
+			if statusInfo.SingleNode {
+				return fmt.Errorf("%w: cannot join into a single node cluster", ErrRefusingToCreateToken)
 			}
 
-			bootstrapToken, err := token.CreateKubeletBootstrapToken(cmd.Context(), c.BootstrapConfig().Spec.API, c.K0sVars, createTokenRole, expiry)
+			bootstrapToken, err := token.CreateKubeletBootstrapToken(cmd.Context(), statusInfo.GetConfig().Spec.API, c.K0sVars, createTokenRole, expiry)
 			if err != nil {
 				return fmt.Errorf("failed to create bootstrap token: %w", err)
 			}
@@ -104,15 +110,4 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 	cmd.Flags().BoolVar(&waitCreate, "wait", false, "wait forever (default false)")
 
 	return cmd
-}
-
-func ensureTokenCreationAcceptable(createTokenRole string, statusInfo *status.K0sStatus, storageSpec *v1beta1.StorageSpec) error {
-	if statusInfo.SingleNode {
-		return errors.New("refusing to create token: cannot join into a single node cluster")
-	}
-	if createTokenRole == token.RoleController && !storageSpec.IsJoinable() {
-		return errors.New("refusing to create token: cannot join controller into current storage")
-	}
-
-	return nil
 }

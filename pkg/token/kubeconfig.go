@@ -81,6 +81,7 @@ func GenerateKubeconfig(joinURL string, caCert []byte, userName string, token st
 }
 
 func loadUserAndJoinURL(api *v1beta1.APISpec, role string) (string, string, error) {
+	// todo: these go to the exact same place
 	switch role {
 	case RoleController:
 		return "controller-bootstrap", api.K0sControlPlaneAPIAddress(), nil
