@@ -120,7 +120,6 @@ func (s *Status) Start(_ context.Context) error {
 			s.L.Errorf("failed to start status server at %s: %s", s.Socket, err)
 		}
 	}()
-	// wait for the reconcile
 
 	return nil
 }
@@ -146,11 +145,13 @@ type statusHandler struct {
 
 // ServerHTTP implementation of handler interface
 func (sh *statusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if sh.Status.StatusInformation.ClusterConfig == nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		_, _ = w.Write([]byte("cluster config not yet available"))
-		return
-	}
+	/*
+		if sh.Status.StatusInformation.ClusterConfig == nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write([]byte("cluster config not yet available"))
+			return
+		}
+	*/
 
 	statusInfo := sh.getCurrentStatus(r.Context())
 

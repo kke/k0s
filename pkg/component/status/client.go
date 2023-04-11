@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 
@@ -27,6 +28,7 @@ import (
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/component/prober"
 	"github.com/k0sproject/k0s/pkg/constant"
+	"github.com/sirupsen/logrus"
 )
 
 type K0sStatus struct {
@@ -94,10 +96,13 @@ func doHTTPRequestViaUnixSocket(socketPath string, path string, tgt interface{})
 	if err != nil {
 		return fmt.Errorf("status: can't do http request: %v %v", socketPath, path)
 	}
-
 	defer response.Body.Close()
 
+	logrus.Debugf("status query response code: %d", response.StatusCode)
+
 	if response.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(response.Body)
+		logrus.Debugf("status query response body: %s", body)
 		return fmt.Errorf("status: unexpected http status code: %v %v", socketPath, path)
 	}
 
