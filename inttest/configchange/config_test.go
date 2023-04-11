@@ -161,10 +161,12 @@ func (s *ConfigSuite) TestK0sGetsUp() {
 		for i := 0; i < 2; i++ {
 			select {
 			case event := <-configMapWatch.ResultChan():
+				s.T().Logf("got configmap event %+v", event)
 				cm := event.Object.(*corev1.ConfigMap)
 				cniConf := cm.Data["cni-conf.json"]
 				s.Contains(cniConf, `"mtu": 1300`)
 			case event := <-daemonSetWatchChannel.ResultChan():
+				s.T().Logf("got daemonset event %+v", event)
 				ds := event.Object.(*appsv1.DaemonSet)
 				s.Require().Contains(ds.Spec.Template.Spec.Containers[0].Args, "--auto-mtu=false")
 			case <-timeout:
@@ -177,8 +179,10 @@ func (s *ConfigSuite) TestK0sGetsUp() {
 
 func (s *ConfigSuite) waitForReconcileEvent(eventWatch watch.Interface) (*corev1.Event, error) {
 	timeout := time.After(20 * time.Second)
+	s.T().Log("waiting for reconcile event")
 	select {
 	case e := <-eventWatch.ResultChan():
+		s.T().Logf("got reconcile event %+v", e)
 		event := e.Object.(*corev1.Event)
 		return event, nil
 	case <-timeout:
