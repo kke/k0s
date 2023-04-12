@@ -36,7 +36,6 @@ func etcdLeaveCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 			bootstrapConfig := c.BootstrapConfig()
-			ctx := cmd.Context()
 			if etcdPeerAddress == "" {
 				etcdPeerAddress = bootstrapConfig.Spec.Storage.Etcd.PeerAddress
 			}
@@ -49,6 +48,8 @@ func etcdLeaveCmd() *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("can't connect to the etcd: %v", err)
 			}
+
+			ctx := cmd.Context()
 
 			peerID, err := etcdClient.GetPeerIDByAddress(ctx, peerURL)
 			if err != nil {
