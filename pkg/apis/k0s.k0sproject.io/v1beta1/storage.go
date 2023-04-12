@@ -41,7 +41,7 @@ var _ Validateable = (*StorageSpec)(nil)
 
 // StorageSpec defines the storage related config options
 type StorageSpec struct {
-	Etcd *EtcdConfig `json:"etcd"`
+	Etcd *EtcdConfig `json:"etcd,omitempty"`
 	Kine *KineConfig `json:"kine,omitempty"`
 
 	// Type of the data store (valid values:etcd or kine)
@@ -77,20 +77,16 @@ func KineStorageSpec(datadir string) *StorageSpec {
 
 // IsJoinable returns true only if the storage config is such that another controller can join the cluster
 func (s *StorageSpec) IsJoinable() bool {
-	if s.Type == EtcdStorageType {
+	switch s.Type {
+	case EtcdStorageType:
 		return !s.Etcd.IsExternalClusterUsed()
-	}
-
-	if strings.HasPrefix(s.Kine.DataSource, "sqlite:") {
-		return false
-	}
-
-	if strings.HasPrefix(s.Kine.DataSource, "mysql:") {
-		return true
-	}
-
-	if strings.HasPrefix(s.Kine.DataSource, "postgres:") {
-		return true
+	case KineStorageType:
+		switch s.Kine.DataSource[:strings.Index(s.Kine.DataSource, ":")] {
+		case "mysql", "postgres":
+			return true
+		case "sqlite":
+			return false
+		}
 	}
 
 	return false
@@ -108,8 +104,11 @@ func (s *StorageSpec) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	if jc.Type == KineStorageType && jc.Kine == nil {
-		jc.Kine = DefaultKineConfig(constant.DataDirDefault)
+	if jc.Type == KineStorageType {
+		if jc.Kine == nil {
+			jc.Kine = DefaultKineConfig(constant.DataDirDefault)
+		}
+		jc.Etcd = nil
 	}
 	return nil
 }
