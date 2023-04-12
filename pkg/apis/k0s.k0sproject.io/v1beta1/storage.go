@@ -79,7 +79,10 @@ func KineStorageSpec(datadir string) *StorageSpec {
 func (s *StorageSpec) IsJoinable() bool {
 	switch s.Type {
 	case EtcdStorageType:
-		return !s.Etcd.IsExternalClusterUsed()
+		if s.Etcd.IsExternalClusterUsed() {
+			return false
+		}
+		return true
 	case KineStorageType:
 		switch s.Kine.DataSource[:strings.Index(s.Kine.DataSource, ":")] {
 		case "mysql", "postgres":
