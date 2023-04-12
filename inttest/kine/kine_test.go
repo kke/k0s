@@ -62,6 +62,13 @@ func (s *KineSuite) TestK0sGetsUp() {
 
 		t.Run(("noControllerJoinTokens"), func(t *testing.T) {
 			noToken, err := ssh.ExecWithOutput(s.Context(), fmt.Sprintf("'%s' token create --role=controller", s.K0sFullPath))
+			if err == nil {
+				t.Log("Expected token create to return an error, but it didn't. Here's k0s status:")
+				// todo: remove, here for debug purposes
+				out, _ := ssh.ExecWithOutput(s.Context(), fmt.Sprintf("'%s' status -o json", s.K0sFullPath))
+				t.Log(out)
+			}
+
 			assert.Error(t, err)
 			assert.Equal(t, "Error: refusing to create token: cannot join controller into current storage", noToken)
 		})
