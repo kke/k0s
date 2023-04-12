@@ -90,7 +90,7 @@ func (n *Network) Validate() []error {
 
 	// todo: in the "ClusterWideConfig" serviceCIDR is emptied - find out if it is intentional
 	if n.ServiceCIDR != "" {
-		_, _, err = net.ParseCIDR(n.ServiceCIDR)
+		_, _, err := net.ParseCIDR(n.ServiceCIDR)
 		if err != nil {
 			errors = append(errors, field.Invalid(field.NewPath("serviceCIDR"), n.ServiceCIDR, "invalid CIDR address"))
 		}
