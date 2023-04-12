@@ -29,9 +29,8 @@ import (
 
 func etcdListCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:               "member-list",
-		Short:             "Returns etcd cluster members list",
-		PersistentPreRunE: config.CallParentPersistentPreRun,
+		Use:   "member-list",
+		Short: "Returns etcd cluster members list",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 			ctx := context.Background()
@@ -46,6 +45,5 @@ func etcdListCmd() *cobra.Command {
 			return json.NewEncoder(cmd.OutOrStdout()).Encode(map[string]interface{}{"members": members})
 		},
 	}
-	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
 	return cmd
 }

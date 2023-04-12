@@ -79,7 +79,7 @@ func KineStorageSpec(datadir string) *StorageSpec {
 func (s *StorageSpec) IsJoinable() bool {
 	switch s.Type {
 	case EtcdStorageType:
-		if s.Etcd.IsExternalClusterUsed() {
+		if s.Etcd.IsExternal() {
 			return false
 		}
 		return true
@@ -192,7 +192,7 @@ func DefaultKineConfig(dataDir string) *KineConfig {
 // GetEndpointsAsString returns comma-separated list of external cluster endpoints if exist
 // or internal etcd address which is https://127.0.0.1:2379
 func (e *EtcdConfig) GetEndpointsAsString() string {
-	if e != nil && e.IsExternalClusterUsed() {
+	if e != nil && e.IsExternal() {
 		return strings.Join(e.ExternalCluster.Endpoints, ",")
 	}
 	return "https://127.0.0.1:2379"
@@ -201,27 +201,27 @@ func (e *EtcdConfig) GetEndpointsAsString() string {
 // GetEndpointsAsString returns external cluster endpoints if exist
 // or internal etcd address which is https://127.0.0.1:2379
 func (e *EtcdConfig) GetEndpoints() []string {
-	if e != nil && e.IsExternalClusterUsed() {
+	if e != nil && e.IsExternal() {
 		return e.ExternalCluster.Endpoints
 	}
 	return []string{"https://127.0.0.1:2379"}
 }
 
-// IsExternalClusterUsed returns true if `spec.storage.etcd.externalCluster` is defined, otherwise returns false.
-func (e *EtcdConfig) IsExternalClusterUsed() bool {
+// IsExternal returns true if `spec.storage.etcd.externalCluster` is defined, otherwise returns false.
+func (e *EtcdConfig) IsExternal() bool {
 	return e != nil && e.ExternalCluster != nil
 }
 
 // IsTLSEnabled returns true if external cluster is not configured or external cluster is configured
 // with all TLS properties: caFile, clientCertFile, clientKeyFile. Otherwise it returns false.
 func (e *EtcdConfig) IsTLSEnabled() bool {
-	return !e.IsExternalClusterUsed() || e.ExternalCluster.hasAllTLSPropertiesDefined()
+	return !e.IsExternal() || e.ExternalCluster.hasAllTLSPropertiesDefined()
 }
 
 // GetCaFilePath returns the host path to a file with CA certificate if external cluster has configured all TLS properties,
 // otherwise it returns the host path to a default CA certificate in a given certDir directory.
 func (e *EtcdConfig) GetCaFilePath(certDir string) string {
-	if e.IsExternalClusterUsed() && e.ExternalCluster.hasAllTLSPropertiesDefined() {
+	if e.IsExternal() && e.ExternalCluster.hasAllTLSPropertiesDefined() {
 		return e.ExternalCluster.CaFile
 	}
 	return filepath.Join(certDir, "ca.crt")
@@ -230,7 +230,7 @@ func (e *EtcdConfig) GetCaFilePath(certDir string) string {
 // GetCertFilePath returns the host path to a file with a client certificate if external cluster has configured all TLS properties,
 // otherwise it returns the host path to a default client certificate in a given certDir directory.
 func (e *EtcdConfig) GetCertFilePath(certDir string) string {
-	if e.IsExternalClusterUsed() && e.ExternalCluster.hasAllTLSPropertiesDefined() {
+	if e.IsExternal() && e.ExternalCluster.hasAllTLSPropertiesDefined() {
 		return e.ExternalCluster.ClientCertFile
 	}
 	return filepath.Join(certDir, "apiserver-etcd-client.crt")
@@ -239,7 +239,7 @@ func (e *EtcdConfig) GetCertFilePath(certDir string) string {
 // GetCaFilePath returns the host path to a file with client private key if external cluster has configured all TLS properties,
 // otherwise it returns the host path to a default client private key in a given certDir directory.
 func (e *EtcdConfig) GetKeyFilePath(certDir string) string {
-	if e.IsExternalClusterUsed() && e.ExternalCluster.hasAllTLSPropertiesDefined() {
+	if e.IsExternal() && e.ExternalCluster.hasAllTLSPropertiesDefined() {
 		return e.ExternalCluster.ClientKeyFile
 	}
 	return filepath.Join(certDir, "apiserver-etcd-client.key")

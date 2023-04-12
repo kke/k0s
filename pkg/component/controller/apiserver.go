@@ -260,7 +260,7 @@ func getEtcdArgs(storage *v1beta1.StorageSpec, k0sVars constant.CfgVars) ([]stri
 				fmt.Sprintf("--etcd-certfile=%s", storage.Etcd.GetCertFilePath(k0sVars.CertRootDir)),
 				fmt.Sprintf("--etcd-keyfile=%s", storage.Etcd.GetKeyFilePath(k0sVars.CertRootDir)))
 		}
-		if storage.Etcd.IsExternalClusterUsed() {
+		if storage.Etcd.IsExternal() {
 			args = append(args, fmt.Sprintf("--etcd-prefix=%s", storage.Etcd.ExternalCluster.EtcdPrefix))
 		}
 	default:

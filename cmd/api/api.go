@@ -91,7 +91,7 @@ func (c *command) start() (err error) {
 	bootstrapConfig := c.BootstrapConfig()
 	storage := bootstrapConfig.Spec.Storage
 
-	if storage.Type == v1beta1.EtcdStorageType && !storage.Etcd.IsExternalClusterUsed() {
+	if storage.Type == v1beta1.EtcdStorageType && !storage.Etcd.IsExternal() {
 		// Only mount the etcd handler if we're running on internal etcd storage
 		// by default the mux will return 404 back which the caller should handle
 		mux.Handle(prefix+"/etcd/members", mw.AllowMethods(http.MethodPost)(

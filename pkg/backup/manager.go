@@ -76,7 +76,7 @@ func (bm *Manager) RunBackup(clusterConfig *v1beta1.ClusterConfig, vars constant
 }
 
 func (bm *Manager) discoverSteps(clusterConfig *v1beta1.ClusterConfig, vars constant.CfgVars, action string, restoredConfigPath string, out io.Writer) {
-	if clusterConfig.Spec.Storage.Type == v1beta1.EtcdStorageType && !clusterConfig.Spec.Storage.Etcd.IsExternalClusterUsed() {
+	if clusterConfig.Spec.Storage.Type == v1beta1.EtcdStorageType && !clusterConfig.Spec.Storage.Etcd.IsExternal() {
 		bm.Add(newEtcdStep(bm.tmpDir, vars.CertRootDir, vars.EtcdCertDir, clusterConfig.Spec.Storage.Etcd.PeerAddress, vars.EtcdDataDir))
 	} else if clusterConfig.Spec.Storage.Type == v1beta1.KineStorageType && strings.HasPrefix(clusterConfig.Spec.Storage.Kine.DataSource, "sqlite:") {
 		bm.Add(newSqliteStep(bm.tmpDir, clusterConfig.Spec.Storage.Kine.DataSource, vars.DataDir))

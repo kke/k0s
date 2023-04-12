@@ -133,7 +133,7 @@ func (e *Etcd) syncEtcdConfig(peerURL, etcdCaCert, etcdCaCertKey string) ([]stri
 // Run runs etcd if external cluster is not configured
 func (e *Etcd) Start(ctx context.Context) error {
 	e.ctx = ctx
-	if e.Config.IsExternalClusterUsed() {
+	if e.Config.IsExternal() {
 		return nil
 	}
 
