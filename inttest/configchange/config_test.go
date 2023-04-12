@@ -150,13 +150,15 @@ func (s *ConfigSuite) TestK0sGetsUp() {
 			ResourceVersion: cml.ResourceVersion,
 		})
 		s.Require().NoError(err)
+		defer configMapWatch.Stop()
 
-		daemonSetWatchChannel, err := kc.AppsV1().DaemonSets("kube-system").Watch(s.Context(), metav1.ListOptions{
+		daemonSetWatch, err := kc.AppsV1().DaemonSets("kube-system").Watch(s.Context(), metav1.ListOptions{
 			FieldSelector:   fields.OneTermEqualSelector("metadata.name", "kube-router").String(),
 			ResourceVersion: ds.ResourceVersion,
 		})
 		s.Require().NoError(err)
-		defer configMapWatch.Stop()
+		defer daemonSetWatch.Stop()
+
 		timeout := time.After(20 * time.Second)
 		for i := 0; i < 2; i++ {
 			select {
@@ -165,7 +167,7 @@ func (s *ConfigSuite) TestK0sGetsUp() {
 				cm := event.Object.(*corev1.ConfigMap)
 				cniConf := cm.Data["cni-conf.json"]
 				s.Contains(cniConf, `"mtu": 1300`)
-			case event := <-daemonSetWatchChannel.ResultChan():
+			case event := <-daemonSetWatch.ResultChan():
 				s.T().Logf("got daemonset event %+v", event)
 				ds := event.Object.(*appsv1.DaemonSet)
 				s.Require().Contains(ds.Spec.Template.Spec.Containers[0].Args, "--auto-mtu=false")
