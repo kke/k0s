@@ -30,13 +30,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var ErrRefusingToCreateToken = errors.New("refusing to create token: cannot join into a single node cluster")
-
 func tokenCreateCmd() *cobra.Command {
 	var (
 		createTokenRole string
 		tokenExpiry     string
 		waitCreate      bool
+
+		errRefusingToCreateToken = errors.New("refusing to create token")
 	)
 
 	cmd := &cobra.Command{
@@ -53,7 +53,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 			c := config.GetCmdOpts(cmd)
 
 			if createTokenRole == token.RoleController && !c.BootstrapConfig().Spec.Storage.IsJoinable() {
-				return fmt.Errorf("%w: cannot join controller into current storage", ErrRefusingToCreateToken)
+				return fmt.Errorf("%w: cannot join controller into current storage", errRefusingToCreateToken)
 			}
 
 			expiry, err := time.ParseDuration(tokenExpiry)
@@ -92,7 +92,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 			}
 
 			if statusInfo.SingleNode {
-				return fmt.Errorf("%w: cannot join into a single node cluster", ErrRefusingToCreateToken)
+				return fmt.Errorf("%w: cannot join into a single node cluster", errRefusingToCreateToken)
 			}
 
 			bootstrapToken, err := token.CreateKubeletBootstrapToken(cmd.Context(), statusInfo.GetConfig().Spec.API, c.K0sVars, createTokenRole, expiry)
