@@ -109,7 +109,6 @@ func (s *ConfigSuite) TestK0sGetsUp() {
 		event, err := s.waitForReconcileEvent(eventWatch)
 		s.Require().NoError(err)
 
-		s.T().Logf("the event is %+v", event)
 		s.Equal("Warning", event.Type)
 		s.Equal("FailedReconciling", event.Reason)
 	})
@@ -121,6 +120,8 @@ func (s *ConfigSuite) TestK0sGetsUp() {
 		newConfig.Spec.Network = v1beta1.DefaultNetwork()
 		newConfig.Spec.Network.KubeRouter.AutoMTU = false
 		newConfig.Spec.Network.KubeRouter.MTU = 1300
+
+		s.Require().NoError(newConfig.ValidationError())
 
 		// Get the resource version for current kuberouter configmap
 		cml, err := kc.CoreV1().ConfigMaps("kube-system").List(s.Context(), metav1.ListOptions{

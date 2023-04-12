@@ -192,7 +192,7 @@ func (s *FootlooseSuite) SetupSuite() {
 		// Record a test failure when the context has been canceled other than
 		// through the test tear down itself. This is to ensure that the test is
 		// actually marked as failed and the cluster state will be recorded.
-		if err := context.Cause(ctx); !errors.Is(err, tornDown) {
+		if err := context.Cause(ctx); err != nil && !errors.Is(err, tornDown) {
 			assert.Failf(t, "Test suite not properly torn down", "%v", err)
 		}
 

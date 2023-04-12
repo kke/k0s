@@ -89,12 +89,12 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 
 			cfg := statusInfo.GetConfig()
 
-			if createTokenRole == token.RoleController && !cfg.Spec.Storage.IsJoinable() {
-				return fmt.Errorf("%w: cannot join controller into current storage", errRefusingToCreateToken)
-			}
-
 			if statusInfo.SingleNode {
 				return fmt.Errorf("%w: cannot join into a single node cluster", errRefusingToCreateToken)
+			}
+
+			if createTokenRole == token.RoleController && !cfg.Spec.Storage.IsJoinable() {
+				return fmt.Errorf("%w: cannot join controller into current storage", errRefusingToCreateToken)
 			}
 
 			bootstrapToken, err := token.CreateKubeletBootstrapToken(cmd.Context(), cfg.Spec.API, c.K0sVars, createTokenRole, expiry)

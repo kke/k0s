@@ -120,7 +120,7 @@ func (s *customPortsSuite) TestControllerJoinsWithCustomPort() {
 
 	controllerToken, err := s.GetJoinToken("controller", "")
 	s.Require().NoError(err)
-	controllerArgs = append([]string{controllerToken, ""}, controllerArgs...)
+	controllerArgs = append(controllerArgs, controllerToken)
 	s.Require().NoError(s.InitController(1, controllerArgs...))
 	s.Require().NoError(s.InitController(2, controllerArgs...))
 
