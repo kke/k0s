@@ -615,12 +615,18 @@ func (s *FootlooseSuite) InitController(idx int, k0sArgs ...string) error {
 		return err
 	}
 
-	dataDirOpt := getDataDirOpt(k0sArgs)
-	if idx == 0 {
+	opts := []string{}
+	if dataDirOpt := getDataDirOpt(k0sArgs); dataDirOpt != "" {
 		s.dataDirOpt = dataDirOpt
+		opts = append(opts, dataDirOpt)
 	}
+	// todo: why is/was this just for idx == 0?
+	// if idx == 0 {
+	// s.dataDirOpt = dataDirOpt
+	//}
 
-	return s.WaitForKubeAPI(controllerNode, dataDirOpt)
+	s.T().Logf("waiting for kube api on %s (%d), with options: %v", controllerNode, idx, opts)
+	return s.WaitForKubeAPI(controllerNode, opts...)
 }
 
 // GetJoinToken generates join token for the asked role
