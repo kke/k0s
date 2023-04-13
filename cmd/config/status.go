@@ -37,7 +37,7 @@ func NewStatusCmd() *cobra.Command {
 				newArgs = append(os.Args, "-o", outputFormat)
 			}
 
-			cmd.SetArgs(newArgs)
+			os.Args = newArgs
 
 			return cmd.Execute()
 		},

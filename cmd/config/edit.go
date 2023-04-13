@@ -31,7 +31,8 @@ func NewEditCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			c := config.GetCmdOpts(cmd)
 
-			cmd.SetArgs([]string{os.Args[0], "kubectl", "--data-dir", c.DataDir, "-n", "kube-system", "edit", "clusterconfig", "k0s"})
+			newArgs := []string{os.Args[0], "kubectl", "--data-dir", c.DataDir, "-n", "kube-system", "edit", "clusterconfig", "k0s"}
+			os.Args = newArgs
 
 			return cmd.Execute()
 		},
