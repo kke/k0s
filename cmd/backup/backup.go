@@ -82,6 +82,7 @@ func (c *command) backup(savePath string, out io.Writer) error {
 		if err != nil {
 			return err
 		}
+		// todo: not sure which config to use here. it's included in the backup as k0s.yaml
 		return mgr.RunBackup(c.InitialConfig(), c.K0sVars, savePath, out)
 	}
 	return fmt.Errorf("backup command must be run on the controller node, have `%s`", status.Role)
