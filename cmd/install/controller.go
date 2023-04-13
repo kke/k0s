@@ -42,21 +42,6 @@ With the controller subcommand you can setup a single node cluster by running:
 
 	k0s install controller --single
 	`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := command{config.GetCmdOpts(cmd)}
-
-			if err := c.convertFileParamsToAbsolute(); err != nil {
-				cmd.SilenceUsage = true
-				return err
-			}
-			flagsAndVals := []string{"controller"}
-			flagsAndVals = append(flagsAndVals, cmdFlagsToArgs(cmd)...)
-			if err := c.setup("controller", flagsAndVals, installFlags); err != nil {
-				cmd.SilenceUsage = true
-				return err
-			}
-			return nil
-		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 			if err := c.InitialConfig().ValidationError(); err != nil {
@@ -88,6 +73,21 @@ With the controller subcommand you can setup a single node cluster by running:
 				}
 			}
 
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := command{config.GetCmdOpts(cmd)}
+
+			if err := c.convertFileParamsToAbsolute(); err != nil {
+				cmd.SilenceUsage = true
+				return err
+			}
+			flagsAndVals := []string{"controller"}
+			flagsAndVals = append(flagsAndVals, cmdFlagsToArgs(cmd)...)
+			if err := c.setup("controller", flagsAndVals, installFlags); err != nil {
+				cmd.SilenceUsage = true
+				return err
+			}
 			return nil
 		},
 	}
