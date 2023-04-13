@@ -19,28 +19,16 @@ package config
 import (
 	"os"
 
-	"sync/atomic"
-
 	"github.com/k0sproject/k0s/pkg/config"
-	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
 
 func NewStatusCmd() *cobra.Command {
-	// since the status command re-executes itself with a different set of arguments
-	// it's theoretically possible to end up in an infinite loop, this bool is used
-	// to detect that has happened and exit with an error
-	var recursionGuard atomic.Bool
-
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Display dynamic configuration reconciliation status",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if recursionGuard.Swap(true) {
-				logrus.Fatalf("status command fatal malfunction")
-			}
-
 			c := config.GetCmdOpts(cmd)
 
 			newArgs := []string{os.Args[0], "kubectl", "--data-dir", c.DataDir, "-n", "kube-system", "get", "event", "--field-selector", "involvedObject.name=k0s"}

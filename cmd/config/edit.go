@@ -19,28 +19,16 @@ package config
 import (
 	"os"
 
-	"sync/atomic"
-
 	"github.com/k0sproject/k0s/pkg/config"
-	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
 
 func NewEditCmd() *cobra.Command {
-	// since the status edit command re-executes itself with a different set of arguments
-	// it's theoretically possible to end up in an infinite loop, this bool is used
-	// to detect that has happened and exit with an error
-	var recursionGuard atomic.Bool
-
 	cmd := &cobra.Command{
 		Use:   "edit",
 		Short: "Launch the editor configured in your shell to edit k0s configuration",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			if recursionGuard.Swap(true) {
-				logrus.Fatalf("status edit command fatal malfunction")
-			}
-
 			c := config.GetCmdOpts(cmd)
 
 			cmd.SetArgs([]string{os.Args[0], "kubectl", "--data-dir", c.DataDir, "-n", "kube-system", "edit", "clusterconfig", "k0s"})
