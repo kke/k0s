@@ -47,7 +47,7 @@ type Stater interface {
 	State(maxCount int) prober.State
 }
 type Status struct {
-	StatusInformation K0sStatus
+	StatusInformation *K0sStatus
 	Prober            Stater
 	Socket            string
 	L                 *logrus.Entry
@@ -61,6 +61,7 @@ type certManager interface {
 }
 
 var _ manager.Component = (*Status)(nil)
+var _ manager.Reconciler = (*Status)(nil)
 
 const defaultMaxEvents = 5
 
@@ -101,7 +102,7 @@ func (s *Status) Init(_ context.Context) error {
 
 func (s *Status) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
 	s.L.Debug("reconcile method called")
-	s.StatusInformation.ClusterConfig = clusterConfig
+	s.StatusInformation.ClusterConfig = clusterConfig.DeepCopy()
 	return nil
 }
 
@@ -145,14 +146,6 @@ type statusHandler struct {
 
 // ServerHTTP implementation of handler interface
 func (sh *statusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	/*
-		if sh.Status.StatusInformation.ClusterConfig == nil {
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_, _ = w.Write([]byte("cluster config not yet available"))
-			return
-		}
-	*/
-
 	statusInfo := sh.getCurrentStatus(r.Context())
 
 	w.Header().Set("Content-Type", "application/json")
@@ -166,7 +159,7 @@ const (
 	defaultPollTimeout  = 5 * time.Minute
 )
 
-func (sh *statusHandler) getCurrentStatus(ctx context.Context) K0sStatus {
+func (sh *statusHandler) getCurrentStatus(ctx context.Context) *K0sStatus {
 	status := sh.Status.StatusInformation
 
 	if !status.Workloads {
