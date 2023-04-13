@@ -28,7 +28,6 @@ import (
 
 	"github.com/k0sproject/k0s/internal/pkg/dir"
 
-	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/autopilot/client"
 	apclient "github.com/k0sproject/k0s/pkg/autopilot/client"
 
@@ -61,7 +60,6 @@ type certManager interface {
 }
 
 var _ manager.Component = (*Status)(nil)
-var _ manager.Reconciler = (*Status)(nil)
 
 const defaultMaxEvents = 5
 
@@ -98,12 +96,6 @@ func (s *Status) Init(_ context.Context) error {
 	}
 	s.L.Infof("Listening address %s", s.Socket)
 
-	return nil
-}
-
-func (s *Status) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
-	s.L.Infof("reconciling status component with %+v", clusterConfig)
-	s.StatusInformation.ClusterConfig = clusterConfig.DeepCopy()
 	return nil
 }
 
