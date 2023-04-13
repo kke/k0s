@@ -22,6 +22,7 @@ import (
 	"math"
 	"path"
 	"path/filepath"
+	"reflect"
 	"time"
 
 	"github.com/k0sproject/k0s/pkg/component/manager"
@@ -372,8 +373,8 @@ func (c *CoreDNS) Reconcile(ctx context.Context, clusterConfig *v1beta1.ClusterC
 	if err != nil {
 		return fmt.Errorf("error calculating coredns configs: %v. will retry", err)
 	}
-	if cfg == c.previousConfig {
-		c.log.Infof("current cfg matches existing, not gonna do anything")
+	if reflect.DeepEqual(cfg, c.previousConfig) {
+		c.log.Debug("current cfg matches existing, not going to do anything")
 		return nil
 	}
 	tw := templatewriter.TemplateWriter{

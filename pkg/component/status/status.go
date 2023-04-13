@@ -68,6 +68,7 @@ const defaultMaxEvents = 5
 // Init initializes component
 func (s *Status) Init(_ context.Context) error {
 	s.L = logrus.WithFields(logrus.Fields{"component": "status"})
+
 	mux := http.NewServeMux()
 	mux.Handle("/status", &statusHandler{Status: s})
 	mux.HandleFunc("/components", func(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +85,7 @@ func (s *Status) Init(_ context.Context) error {
 	s.httpserver = http.Server{
 		Handler: mux,
 	}
-	err = dir.Init(s.StatusInformation.K0sVars.RunDir, 0755)
+	err = dir.Init(s.StatusInformation.K0sVars.RunDir, 0750)
 	if err != nil {
 		return fmt.Errorf("failed to create %s: %w", s.Socket, err)
 	}
@@ -102,6 +103,7 @@ func (s *Status) Init(_ context.Context) error {
 
 func (s *Status) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
 	s.L.Debug("reconcile method called")
+	s.L.Info("reconciling status component with %+v", clusterConfig)
 	s.StatusInformation.ClusterConfig = clusterConfig.DeepCopy()
 	return nil
 }
