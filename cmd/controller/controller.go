@@ -257,7 +257,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	}
 	c.nodeComponents.Add(ctx, &status.Status{
 		Prober: prober.DefaultProber,
-		StatusInformation: status.K0sStatus{
+		StatusInformation: &status.K0sStatus{
 			Pid:             os.Getpid(),
 			Role:            "controller",
 			Args:            os.Args,

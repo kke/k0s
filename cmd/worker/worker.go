@@ -189,7 +189,7 @@ func (c *Command) Start(ctx context.Context) error {
 	if !c.SingleNode && !c.EnableWorker {
 		componentManager.Add(ctx, &status.Status{
 			Prober: prober.DefaultProber,
-			StatusInformation: status.K0sStatus{
+			StatusInformation: &status.K0sStatus{
 				Pid:        os.Getpid(),
 				Role:       "worker",
 				Args:       os.Args,
