@@ -412,15 +412,16 @@ func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
 	network := cfg.Spec.Network
 	network.PodCIDR = ""
 
-	var etcdConfig *EtcdConfig
 	if storage.Type == EtcdStorageType {
-		etcdConfig = &EtcdConfig{
+		cfg.Spec.Storage.Etcd = &EtcdConfig{
 			ExternalCluster: storage.Etcd.ExternalCluster,
 			PeerAddress:     storage.Etcd.PeerAddress,
 			ExtraArgs:       storage.Etcd.ExtraArgs,
 		}
-		cfg.Spec.Storage.Etcd = etcdConfig
+	} else {
+		cfg.Spec.Storage.Etcd = nil
 	}
+
 	return &ClusterConfig{
 		ObjectMeta: cfg.ObjectMeta,
 		TypeMeta:   cfg.TypeMeta,
