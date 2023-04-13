@@ -102,8 +102,7 @@ func (s *Status) Init(_ context.Context) error {
 }
 
 func (s *Status) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
-	s.L.Debug("reconcile method called")
-	s.L.Info("reconciling status component with %+v", clusterConfig)
+	s.L.Infof("reconciling status component with %+v", clusterConfig)
 	s.StatusInformation.ClusterConfig = clusterConfig.DeepCopy()
 	return nil
 }
