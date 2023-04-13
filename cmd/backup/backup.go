@@ -46,7 +46,7 @@ func NewBackupCmd() *cobra.Command {
 		Short: "Back-Up k0s configuration. Must be run as root (or with sudo)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := &command{config.GetCmdOpts(cmd)}
-			if c.InitialConfig().Spec.Storage.Etcd.IsExternal() {
+			if c.BootstrapConfig().Spec.Storage.Etcd.IsExternal() {
 				return fmt.Errorf("command 'k0s backup' does not support external etcd clusters")
 			}
 			return c.backup(savePath, cmd.OutOrStdout())
