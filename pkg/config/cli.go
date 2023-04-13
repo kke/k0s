@@ -65,7 +65,10 @@ type CLIOptions struct {
 
 	AutopilotRoot aproot.Root
 
-	initialConfig   *v1beta1.ClusterConfig
+	// initialConfig is the unmodified config that is read from the config file / stdin
+	initialConfig *v1beta1.ClusterConfig
+
+	// bootstrapConfig is the initialConfig stripped of any cluster wide / dynamic config fields
 	bootstrapConfig *v1beta1.ClusterConfig
 
 	stdin io.Reader
