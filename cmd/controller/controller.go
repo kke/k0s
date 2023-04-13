@@ -527,7 +527,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	logrus.Info("Shutting down k0s controller")
 
 	perfTimer.Output()
-	return os.Remove(c.CfgFile)
+	return nil
 }
 
 func (c *controllerCommand) startWorker(ctx context.Context, profile string) error {
