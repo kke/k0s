@@ -161,7 +161,7 @@ func (sc *setupController) createControlNode(ctx context.Context, cf apcli.Facto
 		return err
 	}
 
-	addresses, err := getControlNodeAddresses(name)
+	addresses, err := getControlNodeAddresses(name, sc.statusSocket)
 	if err != nil {
 		return err
 	}
