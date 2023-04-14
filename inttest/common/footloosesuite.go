@@ -616,12 +616,14 @@ func (s *FootlooseSuite) InitController(idx int, k0sArgs ...string) error {
 	}
 
 	opts := []string{}
-	if dataDirOpt := getDataDirOpt(k0sArgs); dataDirOpt != "" {
-		if idx == 0 {
-			// controller 0's datadir is used for collecting the support bundle so store it for later
-			s.leaderDataDirOpt = dataDirOpt
-		}
+	dataDirOpt := getDataDirOpt(k0sArgs)
+	if dataDirOpt != "" {
 		opts = append(opts, dataDirOpt)
+	}
+
+	if idx == 0 {
+		// controller 0's datadir is used for collecting the support bundle so store it for later
+		s.leaderDataDirOpt = dataDirOpt
 	}
 
 	s.T().Logf("waiting for kube api on %s (%d), with options: %v", controllerNode, idx, opts)
