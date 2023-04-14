@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	apcomm "github.com/k0sproject/k0s/pkg/autopilot/common"
 	apconst "github.com/k0sproject/k0s/pkg/autopilot/constant"
@@ -43,7 +44,7 @@ const (
 
 // RegisterControllers registers all of the autopilot controllers used for updating `k0s`
 // to the controller-runtime manager.
-func RegisterControllers(ctx context.Context, logger *logrus.Entry, mgr crman.Manager, delegate apdel.ControllerDelegate, clusterID string) error {
+func RegisterControllers(ctx context.Context, logger *logrus.Entry, mgr crman.Manager, delegate apdel.ControllerDelegate, clusterID, socketPath string) error {
 	logger = logger.WithField("controller", delegate.Name())
 
 	hostname, err := apcomm.FindEffectiveHostname()
@@ -59,7 +60,7 @@ func RegisterControllers(ctx context.Context, logger *logrus.Entry, mgr crman.Ma
 
 	logger.Infof("Using effective hostname = '%v'", hostname)
 
-	if err := registerSignalController(logger, mgr, signalControllerEventFilter(hostname, apsigpred.DefaultErrorHandler(logger, "k0s signal")), delegate, clusterID); err != nil {
+	if err := registerSignalController(logger, mgr, signalControllerEventFilter(hostname, apsigpred.DefaultErrorHandler(logger, "k0s signal")), delegate, clusterID, socketPath); err != nil {
 		return fmt.Errorf("unable to register k0s 'signal' controller: %w", err)
 	}
 
@@ -75,11 +76,11 @@ func RegisterControllers(ctx context.Context, logger *logrus.Entry, mgr crman.Ma
 		return fmt.Errorf("unable to register k0s 'applying-update' controller: %w", err)
 	}
 
-	if err := registerRestart(logger, mgr, restartEventFilter(hostname, apsigpred.DefaultErrorHandler(logger, "k0s restart")), delegate); err != nil {
+	if err := registerRestart(logger, mgr, restartEventFilter(hostname, apsigpred.DefaultErrorHandler(logger, "k0s restart")), delegate, socketPath); err != nil {
 		return fmt.Errorf("unable to register k0s 'restart' controller: %w", err)
 	}
 
-	if err := registerRestarted(logger, mgr, restartedEventFilter(hostname, apsigpred.DefaultErrorHandler(logger, "k0s restarted")), delegate); err != nil {
+	if err := registerRestarted(logger, mgr, restartedEventFilter(hostname, apsigpred.DefaultErrorHandler(logger, "k0s restarted")), delegate, socketPath); err != nil {
 		return fmt.Errorf("unable to register k0s 'restarted' controller: %w", err)
 	}
 
@@ -93,7 +94,10 @@ func RegisterControllers(ctx context.Context, logger *logrus.Entry, mgr crman.Ma
 // getK0sVersion returns the version k0s installed, as identified by the
 // provided status socket path.
 func getK0sVersion(statusSocketPath string) (string, error) {
-	status, err := status.GetStatusInfo(statusSocketPath)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	status, err := status.GetStatusInfo(ctx, statusSocketPath)
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +107,10 @@ func getK0sVersion(statusSocketPath string) (string, error) {
 
 // getK0sPid returns the PID of a running k0s based on its status socket.
 func getK0sPid(statusSocketPath string) (int, error) {
-	status, err := status.GetStatusInfo(statusSocketPath)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	status, err := status.GetStatusInfo(ctx, statusSocketPath)
 	if err != nil {
 		return -1, err
 	}

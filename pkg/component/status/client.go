@@ -23,7 +23,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/component/prober"
 	"github.com/k0sproject/k0s/pkg/constant"
@@ -53,10 +55,21 @@ type ProbeStatus struct {
 }
 
 // GetStatus returns the status of the k0s process using the status socket
-func GetStatusInfo(socketPath string) (*K0sStatus, error) {
+func GetStatusInfo(ctx context.Context, socketPath string) (*K0sStatus, error) {
 	status := &K0sStatus{}
-	if err := statusSocketRequest(socketPath, "status", status); err != nil {
-		return nil, err
+	err := retry.Do(
+		func() error {
+			return statusSocketRequest(ctx, socketPath, "status", status)
+		},
+		retry.Context(ctx),
+		retry.LastErrorOnly(true),
+		retry.Delay(250*time.Millisecond),
+		retry.OnRetry(func(attempt uint, err error) {
+			logrus.Debugf("retrying status query (%d): %v", attempt, err)
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get k0s status: %w", err)
 	}
 	return status, nil
 }
@@ -64,7 +77,7 @@ func GetStatusInfo(socketPath string) (*K0sStatus, error) {
 // GetComponentStatus returns the per-component events and health-checks
 func GetComponentStatus(socketPath string, maxCount int) (*prober.State, error) {
 	status := &prober.State{}
-	if err := statusSocketRequest(socketPath,
+	if err := statusSocketRequest(context.Background(), socketPath,
 		fmt.Sprintf("components?maxCount=%d", maxCount),
 		status); err != nil {
 		return nil, err
@@ -72,12 +85,16 @@ func GetComponentStatus(socketPath string, maxCount int) (*prober.State, error) 
 	return status, nil
 }
 
-func statusSocketRequest(socketPath string, path string, tgt interface{}) error {
+func statusSocketRequest(ctx context.Context, socketPath string, path string, tgt interface{}) error {
 	httpc := http.Client{
 		Transport: &http.Transport{
-			// todo: pass context
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", socketPath)
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				var dialer net.Dialer
+				dc, err := dialer.DialContext(ctx, "unix", socketPath)
+				if err != nil {
+					return nil, fmt.Errorf("dialcontex: %w", err)
+				}
+				return dc, nil
 			},
 		},
 	}

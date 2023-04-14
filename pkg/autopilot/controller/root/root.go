@@ -23,6 +23,7 @@ import (
 type RootConfig struct {
 	KubeConfig          string
 	K0sDataDir          string
+	K0sSocketPath       string
 	Mode                string
 	ManagerPort         int
 	MetricsBindAddr     string

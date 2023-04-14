@@ -483,6 +483,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 
 	c.clusterComponents.Add(ctx, &controller.Autopilot{
 		K0sVars:            c.K0sVars,
+		K0sSocketPath:      c.StatusSocket,
 		AdminClientFactory: adminClientFactory,
 		EnableWorker:       c.EnableWorker,
 	})

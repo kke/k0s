@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,13 +29,17 @@ import (
 
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	aproot "github.com/k0sproject/k0s/pkg/autopilot/controller/root"
+	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/constant"
 	"github.com/k0sproject/k0s/pkg/k0scloudprovider"
+	"github.com/k0sproject/k0s/pkg/kubernetes"
+	"github.com/k0sproject/k0s/pkg/token"
 
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"golang.org/x/exp/slices"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var (
@@ -459,10 +465,47 @@ func (o *CLIOptions) InitialConfig() *v1beta1.ClusterConfig {
 	return o.initialConfig
 }
 
+var ErrDynamicConfigNotEnabled = errors.New("dynamic config not enabled")
+
 // BootstrapConfig returns the minimal config required to bootstrap the cluster, the rest of the config can come from the dynamic config. Built from the initial config.
 func (o *CLIOptions) BootstrapConfig() *v1beta1.ClusterConfig {
 	if o.bootstrapConfig == nil {
 		o.bootstrapConfig = o.InitialConfig().GetBootstrappingConfig()
 	}
 	return o.bootstrapConfig
+}
+
+func (o *CLIOptions) DynamicConfig(ctx context.Context) (*v1beta1.ClusterConfig, error) {
+	statusInfo, err := o.Status(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if statusInfo.Role == token.RoleController && !statusInfo.DynamicConfig {
+		return nil, ErrDynamicConfigNotEnabled
+	}
+
+	if statusInfo.Role == token.RoleWorker {
+		//use workerside dynamic config client as in statusHandler
+		return nil, fmt.Errorf("dynamic config not available on workers")
+	}
+
+	clientFactory := kubernetes.NewAdminClientFactory(o.K0sVars)
+	configClient, err := clientFactory.GetConfigClient()
+	if err != nil {
+		return nil, fmt.Errorf("create api client: %w", err)
+	}
+	cfg, err := configClient.Get(ctx, constant.ClusterConfigObjectName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("config client get: %w", err)
+	}
+	return cfg, nil
+}
+
+func (o *CLIOptions) Status(ctx context.Context) (*status.K0sStatus, error) {
+	statusInfo, err := status.GetStatusInfo(ctx, o.StatusSocket)
+	if err != nil {
+		return nil, err
+	}
+	return statusInfo, nil
 }

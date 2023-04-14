@@ -34,6 +34,7 @@ var _ manager.Component = (*Autopilot)(nil)
 
 type Autopilot struct {
 	K0sVars            constant.CfgVars
+	K0sSocketPath      string
 	AdminClientFactory kubernetes.ClientFactoryInterface
 	EnableWorker       bool
 }
@@ -53,6 +54,7 @@ func (a *Autopilot) Start(ctx context.Context) error {
 	autopilotRoot, err := apcont.NewRootController(aproot.RootConfig{
 		KubeConfig:          a.K0sVars.AdminKubeConfigPath,
 		K0sDataDir:          a.K0sVars.DataDir,
+		K0sSocketPath:       a.K0sSocketPath,
 		Mode:                "controller",
 		ManagerPort:         8899,
 		MetricsBindAddr:     "0",

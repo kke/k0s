@@ -20,10 +20,12 @@ limitations under the License.
 package backup
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/k0sproject/k0s/internal/pkg/dir"
 	"github.com/k0sproject/k0s/pkg/backup"
@@ -71,7 +73,9 @@ func (c *command) backup(savePath string, out io.Writer) error {
 		return fmt.Errorf("cannot find data-dir (%v). check your environment and/or command input and try again", c.K0sVars.DataDir)
 	}
 
-	status, err := status.GetStatusInfo(c.StatusSocket)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	status, err := status.GetStatusInfo(ctx, c.StatusSocket)
 	if err != nil {
 		return fmt.Errorf("unable to detect cluster status %s", err)
 	}

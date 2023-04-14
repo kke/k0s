@@ -20,12 +20,14 @@ limitations under the License.
 package restore
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/k0sproject/k0s/internal/pkg/dir"
 	"github.com/k0sproject/k0s/internal/pkg/file"
@@ -76,7 +78,10 @@ func (c *command) restore(path string, out io.Writer) error {
 		return fmt.Errorf("this command must be run as root")
 	}
 
-	k0sStatus, _ := status.GetStatusInfo(config.StatusSocket)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	k0sStatus, _ := status.GetStatusInfo(ctx, c.StatusSocket)
 	if k0sStatus != nil && k0sStatus.Pid != 0 {
 		logrus.Fatal("k0s seems to be running! k0s must be down during the restore operation.")
 	}

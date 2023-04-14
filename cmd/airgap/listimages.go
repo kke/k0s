@@ -17,10 +17,15 @@ limitations under the License.
 package airgap
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"runtime"
+	"time"
 
 	"github.com/k0sproject/k0s/pkg/airgap"
 	"github.com/k0sproject/k0s/pkg/config"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -30,16 +35,31 @@ func NewAirgapListImagesCmd() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:     "list-images",
-		Short:   "List image names and version needed for air-gap install",
+		Short:   "List image names and version needed for an air-gap install",
 		Example: `k0s airgap list-images`,
+		PreRun: func(cmd *cobra.Command, _ []string) {
+			logrus.SetOutput(cmd.ErrOrStderr())
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 
-			// todo: this needs to slurp the config from the api i think
-			clusterConfig := c.InitialConfig()
+			if runtime.GOOS == "windows" {
+				return fmt.Errorf("currently not supported on windows")
+			}
 
-			for _, uri := range airgap.GetImageURIs(clusterConfig.Spec, all) {
-				fmt.Fprintln(cmd.OutOrStdout(), uri)
+			ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
+			defer cancel()
+
+			cfg, err := c.DynamicConfig(ctx)
+			if err != nil {
+				if !errors.Is(err, config.ErrDynamicConfigNotEnabled) {
+					logrus.WithError(err).Error("failed to get dynamic config, falling back to local config")
+				}
+				cfg = c.InitialConfig()
+			}
+
+			for _, uri := range airgap.GetImageURIs(cfg.Spec, all) {
+				cmd.Println(uri)
 			}
 
 			return nil

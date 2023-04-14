@@ -46,14 +46,14 @@ func NewStatusCmd() *cobra.Command {
 				return fmt.Errorf("currently not supported on windows")
 			}
 
-			statusInfo, err := status.GetStatusInfo(c.StatusSocket)
+			statusInfo, err := status.GetStatusInfo(cmd.Context(), c.StatusSocket)
 			if err != nil {
 				return err
 			}
 			if statusInfo != nil {
 				printStatus(cmd.OutOrStdout(), statusInfo, output)
 			} else {
-				fmt.Fprintln(cmd.OutOrStdout(), "K0s is not running")
+				fmt.Fprintln(cmd.ErrOrStderr(), "K0s is not running")
 			}
 			return nil
 		},

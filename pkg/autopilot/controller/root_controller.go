@@ -74,7 +74,7 @@ func NewRootController(cfg aproot.RootConfig, logger *logrus.Entry, enableWorker
 	c.stopSubHandler = c.stopSubControllers
 	c.leaseWatcherCreator = NewLeaseWatcher
 	c.setupHandler = func(ctx context.Context, cf apcli.FactoryInterface) error {
-		setupController := NewSetupController(c.log, cf, cfg.K0sDataDir, enableWorker)
+		setupController := NewSetupController(c.log, cf, cfg.K0sDataDir, cfg.K0sSocketPath, enableWorker)
 		return setupController.Run(ctx)
 	}
 
@@ -208,7 +208,7 @@ func (c *rootController) startSubControllerRoutine(ctx context.Context, logger *
 		return err
 	}
 
-	if err := apupdate.RegisterControllers(ctx, logger, mgr, c.autopilotClientFactory, leaderMode, clusterID); err != nil {
+	if err := apupdate.RegisterControllers(ctx, logger, mgr, c.autopilotClientFactory, leaderMode, clusterID, c.cfg.K0sSocketPath); err != nil {
 		logger.WithError(err).Error("unable to register 'update' controllers")
 		return err
 	}

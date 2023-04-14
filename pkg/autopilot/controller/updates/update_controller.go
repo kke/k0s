@@ -32,12 +32,13 @@ type updateController struct {
 	client        crcli.Client
 	clientFactory apcli.FactoryInterface
 
-	clusterID string
+	socketPath string
+	clusterID  string
 
 	updater *updater
 }
 
-func RegisterControllers(ctx context.Context, logger *logrus.Entry, mgr crman.Manager, clientFactory apcli.FactoryInterface, leaderMode bool, clusterID string) error {
+func RegisterControllers(ctx context.Context, logger *logrus.Entry, mgr crman.Manager, clientFactory apcli.FactoryInterface, leaderMode bool, clusterID, socketPath string) error {
 	return cr.NewControllerManagedBy(mgr).
 		For(&apv1beta2.UpdateConfig{}).
 		Complete(
@@ -46,6 +47,7 @@ func RegisterControllers(ctx context.Context, logger *logrus.Entry, mgr crman.Ma
 				client:        mgr.GetClient(),
 				clientFactory: clientFactory,
 				clusterID:     clusterID,
+				socketPath:    socketPath,
 			},
 		)
 }
@@ -67,7 +69,7 @@ func (u *updateController) Reconcile(ctx context.Context, req cr.Request) (cr.Re
 	u.log.Infof("processing updater config '%s'", req.NamespacedName)
 
 	if u.updater == nil {
-		updater, err := newUpdater(ctx, *updaterConfig, u.client, u.clusterID, token)
+		updater, err := newUpdater(ctx, *updaterConfig, u.client, u.clusterID, token, u.socketPath)
 		if err != nil {
 			return cr.Result{}, err
 		}

@@ -45,18 +45,20 @@ type setupController struct {
 	log           *logrus.Entry
 	clientFactory apcli.FactoryInterface
 	k0sDataDir    string
+	statusSocket  string
 	enableWorker  bool
 }
 
 var _ SetupController = (*setupController)(nil)
 
 // NewSetupController creates a `SetupController`
-func NewSetupController(logger *logrus.Entry, cf apcli.FactoryInterface, k0sDataDir string, enableWorker bool) SetupController {
+func NewSetupController(logger *logrus.Entry, cf apcli.FactoryInterface, k0sDataDir, statusSocket string, enableWorker bool) SetupController {
 	return &setupController{
 		log:           logger.WithField("controller", "setup"),
 		clientFactory: cf,
 		k0sDataDir:    k0sDataDir,
 		enableWorker:  enableWorker,
+		statusSocket:  statusSocket,
 	}
 }
 
@@ -178,12 +180,9 @@ func (sc *setupController) createControlNode(ctx context.Context, cf apcli.Facto
 	return nil
 }
 
-// TODO re-use from somewhere else
-const DefaultK0sStatusSocketPath = "/run/k0s/status.sock"
-
-func getControlNodeAddresses(hostname string) ([]corev1.NodeAddress, error) {
+func getControlNodeAddresses(hostname, socketPath string) ([]corev1.NodeAddress, error) {
 	addresses := []corev1.NodeAddress{}
-	apiAddress, err := getControllerAPIAddress()
+	apiAddress, err := getControllerAPIAddress(socketPath)
 	if err != nil {
 		return addresses, err
 	}
@@ -200,13 +199,15 @@ func getControlNodeAddresses(hostname string) ([]corev1.NodeAddress, error) {
 	return addresses, nil
 }
 
-func getControllerAPIAddress() (string, error) {
-	status, err := status.GetStatusInfo(DefaultK0sStatusSocketPath)
+func getControllerAPIAddress(socketPath string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	status, err := status.GetStatusInfo(ctx, socketPath)
 	if err != nil {
 		return "", err
 	}
 
-	// todo: this needs to slurp the config from api?
 	cfg := status.BootstrapConfig
 
 	return cfg.Spec.API.Address, nil

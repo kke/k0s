@@ -26,7 +26,6 @@ import (
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/token"
 
-	"github.com/avast/retry-go"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +56,6 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 				return err
 			}
 
-			var statusInfo *status.K0sStatus
 			ctx := cmd.Context()
 			if !waitCreate {
 				var cancel context.CancelFunc
@@ -65,23 +63,9 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 				defer cancel()
 			}
 
-			// we will retry every second for two minutes and then error
-			err = retry.Do(
-				func() error {
-					info, err := status.GetStatusInfo(c.StatusSocket)
-					if err != nil {
-						return fmt.Errorf("failed to get k0s status: %w", err)
-					}
-					statusInfo = info
-
-					return nil
-				},
-				retry.Context(ctx),
-				retry.LastErrorOnly(true),
-				retry.Delay(1*time.Second),
-			)
+			statusInfo, err := status.GetStatusInfo(ctx, c.StatusSocket)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get k0s status: %w", err)
 			}
 			if statusInfo == nil {
 				return errors.New("failed to get k0s status: status info is nil")

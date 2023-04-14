@@ -33,6 +33,7 @@ import (
 var _ ConfigSource = (*apiConfigSource)(nil)
 
 type apiConfigSource struct {
+	clientFactory   kubeutil.ClientFactoryInterface
 	configClient    k0sclient.ClusterConfigInterface
 	resultChan      chan *v1beta1.ClusterConfig
 	initialConfig   *v1beta1.ClusterConfig
@@ -45,12 +46,17 @@ func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface, initi
 		return nil, err
 	}
 	a := &apiConfigSource{
+		clientFactory:   kubeClientFactory,
 		configClient:    configClient,
 		resultChan:      make(chan *v1beta1.ClusterConfig, 1),
 		initialConfig:   initialConfig,
 		bootstrapConfig: bootstrapConfig,
 	}
 	return a, nil
+}
+
+func (a *apiConfigSource) Copy() (ConfigSource, error) {
+	return NewAPIConfigSource(a.clientFactory, a.initialConfig, a.bootstrapConfig)
 }
 
 func (a *apiConfigSource) Release(ctx context.Context) {
