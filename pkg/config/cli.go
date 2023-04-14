@@ -495,7 +495,14 @@ func (o *CLIOptions) DynamicConfig(ctx context.Context) (*v1beta1.ClusterConfig,
 	if err != nil {
 		return nil, fmt.Errorf("create api client: %w", err)
 	}
-	cfg, err := configClient.Get(ctx, constant.ClusterConfigObjectName, metav1.GetOptions{})
+	cfg, err := configClient.Get(ctx, constant.ClusterConfigObjectName,
+		metav1.GetOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: v1beta1.ClusterConfigAPIVersion,
+				Kind:       "clusterconfigs",
+			},
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("config client get: %w", err)
 	}

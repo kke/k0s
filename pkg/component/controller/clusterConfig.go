@@ -185,7 +185,14 @@ func (r *ClusterConfigReconciler) reportStatus(ctx context.Context, config *v1be
 func (r *ClusterConfigReconciler) clusterConfigExists(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	_, err := r.configClient.Get(ctx, constant.ClusterConfigObjectName, metav1.GetOptions{})
+	_, err := r.configClient.Get(ctx, constant.ClusterConfigObjectName,
+		metav1.GetOptions{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: v1beta1.ClusterConfigAPIVersion,
+				Kind:       "clusterconfigs",
+			},
+		},
+	)
 	return err
 }
 
