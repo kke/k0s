@@ -114,7 +114,7 @@ type FootlooseSuite struct {
 	cluster        *cluster.Cluster
 	launchDelegate launchDelegate
 
-	dataDirOpt string // Data directory option of first controller, required to fetch the cluster state
+	leaderDataDirOpt string // Data directory option of first controller, required to fetch the cluster state
 }
 
 // initializeDefaults initializes any unset configuration knobs to their defaults.
@@ -370,8 +370,8 @@ func (s *FootlooseSuite) cleanupSuite(t *testing.T, ctx context.Context) {
 
 func (s *FootlooseSuite) collectTroubleshootSupportBundle(ctx context.Context, t *testing.T, filePath string) {
 	dataDir := constant.DataDirDefault
-	if s.dataDirOpt != "" {
-		dataDir = s.dataDirOpt[len(dataDirOptPrefix):]
+	if s.leaderDataDirOpt != "" {
+		dataDir = s.leaderDataDirOpt[len(dataDirOptPrefix):]
 	}
 	cmd := fmt.Sprintf("troubleshoot-k0s-inttest.sh %q", dataDir)
 
@@ -617,13 +617,12 @@ func (s *FootlooseSuite) InitController(idx int, k0sArgs ...string) error {
 
 	opts := []string{}
 	if dataDirOpt := getDataDirOpt(k0sArgs); dataDirOpt != "" {
-		s.dataDirOpt = dataDirOpt
+		if idx == 0 {
+			// controller 0's datadir is used for collecting the support bundle so store it for later
+			s.leaderDataDirOpt = dataDirOpt
+		}
 		opts = append(opts, dataDirOpt)
 	}
-	// todo: why is/was this just for idx == 0?
-	// if idx == 0 {
-	// s.dataDirOpt = dataDirOpt
-	//}
 
 	s.T().Logf("waiting for kube api on %s (%d), with options: %v", controllerNode, idx, opts)
 	return s.WaitForKubeAPI(controllerNode, opts...)
