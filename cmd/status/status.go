@@ -51,7 +51,7 @@ func NewStatusCmd() *cobra.Command {
 				return err
 			}
 			if statusInfo != nil {
-				printStatus(cmd.OutOrStdout(), statusInfo, output)
+				return printStatus(cmd.OutOrStdout(), statusInfo, output)
 			} else {
 				fmt.Fprintln(cmd.ErrOrStderr(), "K0s is not running")
 			}
