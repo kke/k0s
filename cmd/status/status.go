@@ -28,6 +28,7 @@ import (
 
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
+	"github.com/k0sproject/k0s/pkg/token"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -140,7 +141,10 @@ func printStatus(w io.Writer, status *status.K0sStatus, output string) {
 		fmt.Fprintln(w, "Process ID:", status.Pid)
 		fmt.Fprintln(w, "Role:", status.Role)
 		fmt.Fprintln(w, "Workloads:", status.Workloads)
-		fmt.Fprintln(w, "SingleNode:", status.SingleNode)
+		if status.Role == token.RoleController {
+			fmt.Fprintln(w, "SingleNode:", status.SingleNode)
+			fmt.Fprintln(w, "Dynamic Config:", status.DynamicConfig)
+		}
 		if status.Workloads {
 			fmt.Fprintln(w, "Kube-api probing successful:", status.WorkerToAPIConnectionStatus.Success)
 			fmt.Fprintln(w, "Kube-api probing last error: ", status.WorkerToAPIConnectionStatus.Message)

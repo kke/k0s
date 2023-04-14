@@ -264,6 +264,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 			Version:         build.Version,
 			Workloads:       c.SingleNode || c.EnableWorker,
 			SingleNode:      c.SingleNode,
+			DynamicConfig:   c.EnableDynamicConfig,
 			K0sVars:         c.K0sVars,
 			BootstrapConfig: bootstrapConfig,
 		},

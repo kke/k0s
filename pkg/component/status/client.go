@@ -40,6 +40,7 @@ type K0sStatus struct {
 	Output                      string
 	Workloads                   bool
 	SingleNode                  bool
+	DynamicConfig               bool
 	Args                        []string
 	WorkerToAPIConnectionStatus ProbeStatus
 	BootstrapConfig             *v1beta1.ClusterConfig
