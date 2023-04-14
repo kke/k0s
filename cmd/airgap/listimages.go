@@ -59,7 +59,7 @@ func NewAirgapListImagesCmd() *cobra.Command {
 			}
 
 			for _, uri := range airgap.GetImageURIs(cfg.Spec, all) {
-				cmd.Println(uri)
+				fmt.Fprintln(cmd.OutOrStdout(), uri)
 			}
 
 			return nil
