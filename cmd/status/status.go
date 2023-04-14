@@ -17,18 +17,15 @@ limitations under the License.
 package status
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
-	"net/http"
 	"os"
 	"runtime"
+	"text/template"
 
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
-	"github.com/k0sproject/k0s/pkg/token"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -100,61 +97,47 @@ func NewStatusSubCmdComponents() *cobra.Command {
 
 }
 
-// TODO: move it somewhere else, now here just for quick manual testing
-func GetOverSocket(socketPath string, path string, tgt interface{}) error {
+const statusTextTemplate = `Version: {{.Version}}
+Process ID: {{.Pid}}
+Role: {{.Role}}
+Workloads: {{.Workloads}}
+{{- if eq .Role "controller"}}
+SingleNode: {{.SingleNode}}
+Dynamic Config: {{.DynamicConfig}}
+{{- end}}
+{{- if .Workloads}}
+Kube-api probing successful: {{.WorkerToAPIConnectionStatus.Success}}
+Kube-api probing last error: {{.WorkerToAPIConnectionStatus.Message}}
+{{- end}}
+{{- if .SysInit}}
+Init System: {{.SysInit}}
+{{- end}}
+{{- if .StubFile}}
+Service file: {{.StubFile}}
+{{- end}}`
 
-	httpc := http.Client{
-		Transport: &http.Transport{
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("unix", socketPath)
-			},
-		},
-	}
-
-	response, err := httpc.Get("http://localhost/" + path)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
-
-	responseData, err := io.ReadAll(response.Body)
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(responseData, tgt); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func printStatus(w io.Writer, status *status.K0sStatus, output string) {
+func printStatus(w io.Writer, status *status.K0sStatus, output string) error {
 	switch output {
 	case "json":
-		jsn, _ := json.MarshalIndent(status, "", "   ")
+		jsn, err := json.MarshalIndent(status, "", "   ")
+		if err != nil {
+			return fmt.Errorf("json encode status info: %w", err)
+		}
 		fmt.Fprintln(w, string(jsn))
 	case "yaml":
-		ym, _ := yaml.Marshal(status)
+		ym, err := yaml.Marshal(status)
+		if err != nil {
+			return fmt.Errorf("yaml encode status info: %w", err)
+		}
 		fmt.Fprintln(w, string(ym))
 	default:
-		fmt.Fprintln(w, "Version:", status.Version)
-		fmt.Fprintln(w, "Process ID:", status.Pid)
-		fmt.Fprintln(w, "Role:", status.Role)
-		fmt.Fprintln(w, "Workloads:", status.Workloads)
-		if status.Role == token.RoleController {
-			fmt.Fprintln(w, "SingleNode:", status.SingleNode)
-			fmt.Fprintln(w, "Dynamic Config:", status.DynamicConfig)
+		tmpl, err := template.New("status").Parse(statusTextTemplate)
+		if err != nil {
+			return fmt.Errorf("error parsing template: %w", err)
 		}
-		if status.Workloads {
-			fmt.Fprintln(w, "Kube-api probing successful:", status.WorkerToAPIConnectionStatus.Success)
-			fmt.Fprintln(w, "Kube-api probing last error: ", status.WorkerToAPIConnectionStatus.Message)
+		if err := tmpl.Execute(w, status); err != nil {
+			return fmt.Errorf("error rendering status template: %w", err)
 		}
-		if status.SysInit != "" {
-			fmt.Fprintln(w, "Init System:", status.SysInit)
-		}
-		if status.StubFile != "" {
-			fmt.Fprintln(w, "Service file:", status.StubFile)
-		}
-
 	}
+	return nil
 }
