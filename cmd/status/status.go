@@ -20,12 +20,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 	"runtime"
 	"text/template"
 
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 	"sigs.k8s.io/yaml"
@@ -72,6 +72,10 @@ func NewStatusSubCmdComponents() *cobra.Command {
 		Use:     "components",
 		Short:   "Get k0s instance component status information",
 		Example: `The command will return information about k0s components.`,
+		PreRun: func(cmd *cobra.Command, args []string) {
+			logrus.SetOutput(cmd.ErrOrStderr())
+			logrus.Warn("all of the components do not provide full status reports yet, the output of this command may be inaccurate")
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 
@@ -79,7 +83,6 @@ func NewStatusSubCmdComponents() *cobra.Command {
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("currently not supported on windows")
 			}
-			fmt.Fprintln(os.Stderr, "!!! per component status is not yet finally ready, information here might be not full yet")
 			state, err := status.GetComponentStatus(c.StatusSocket, maxCount)
 			if err != nil {
 				return err
