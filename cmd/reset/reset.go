@@ -17,9 +17,11 @@ limitations under the License.
 package reset
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/k0sproject/k0s/pkg/cleanup"
 	"github.com/k0sproject/k0s/pkg/component/status"
@@ -61,7 +63,9 @@ func (c *command) reset() error {
 		logrus.Fatal("this command must be run as root!")
 	}
 
-	k0sStatus, _ := status.GetStatusInfo(c.StatusSocket)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	k0sStatus, _ := status.GetStatusInfo(ctx, c.StatusSocket)
 	if k0sStatus != nil && k0sStatus.Pid != 0 {
 		logrus.Fatal("k0s seems to be running! please stop k0s before reset.")
 	}
