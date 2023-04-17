@@ -208,9 +208,7 @@ func getControllerAPIAddress(socketPath string) (string, error) {
 		return "", err
 	}
 
-	cfg := status.BootstrapConfig
-
-	return cfg.Spec.API.Address, nil
+	return status.ClusterConfig.Spec.API.Address, nil
 }
 
 // waitForControlNodesCRD waits until the controlnodes CRD is established for
