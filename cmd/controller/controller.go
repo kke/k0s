@@ -309,7 +309,25 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	var configSource clusterconfig.ConfigSource
 	// For backwards compatibility, use file as config source by default
 	if c.EnableDynamicConfig {
-		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory, c.InitialConfig().GetClusterWideConfig(), c.BootstrapConfig())
+		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory, c.BootstrapConfig())
+		apiConfigSaver, err := controller.NewManifestsSaver("api-config", c.K0sVars.DataDir)
+		if err != nil {
+			return fmt.Errorf("failed to initialize api-config manifests saver: %w", err)
+		}
+
+		c.clusterComponents.Add(ctx, controller.NewCRD(apiConfigSaver, []string{"v1beta1"}))
+
+		cfgReconciler, err := controller.NewClusterConfigReconciler(
+			leaderElector,
+			c.K0sVars,
+			c.clusterComponents,
+			adminClientFactory,
+			configSource,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to initialize cluster-config reconciler: %w", err)
+		}
+		c.clusterComponents.Add(ctx, cfgReconciler)
 	} else {
 		configSource, err = clusterconfig.NewStaticSource(c.InitialConfig())
 	}
@@ -318,27 +336,6 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	}
 	defer configSource.Stop()
 
-	// The CRDs are only required if the config is stored in the cluster.
-	if configSource.NeedToStoreInitialConfig() {
-		apiConfigSaver, err := controller.NewManifestsSaver("api-config", c.K0sVars.DataDir)
-		if err != nil {
-			return fmt.Errorf("failed to initialize api-config manifests saver: %w", err)
-		}
-
-		c.clusterComponents.Add(ctx, controller.NewCRD(apiConfigSaver, []string{"v1beta1"}))
-	}
-
-	cfgReconciler, err := controller.NewClusterConfigReconciler(
-		leaderElector,
-		c.K0sVars,
-		c.clusterComponents,
-		adminClientFactory,
-		configSource,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to initialize cluster-config reconciler: %w", err)
-	}
-	c.clusterComponents.Add(ctx, cfgReconciler)
 
 	if !slices.Contains(c.DisableComponents, constant.HelmComponentName) {
 		helmSaver, err := controller.NewManifestsSaver("helm", c.K0sVars.DataDir)
@@ -510,7 +507,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	}()
 
 	// At this point all the components should be initialized and running, thus we can release the config for reconcilers
-	go configSource.Release(ctx)
+	go configSource.Start(ctx)
 
 	if c.EnableWorker {
 		perfTimer.Checkpoint("starting-worker")

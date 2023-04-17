@@ -26,35 +26,22 @@ import (
 var _ ConfigSource = (*staticSource)(nil)
 
 type staticSource struct {
-	staticConfig *v1beta1.ClusterConfig
-	resultChan   chan *v1beta1.ClusterConfig
+	configPubSub
 }
 
 func NewStaticSource(staticConfig *v1beta1.ClusterConfig) (ConfigSource, error) {
 	return &staticSource{
-		staticConfig: staticConfig,
-		resultChan:   make(chan *v1beta1.ClusterConfig),
+		config: staticConfig,
 	}, nil
-}
-
-func (s *staticSource) Copy() (ConfigSource, error) {
-	return NewStaticSource(s.staticConfig)
 }
 
 func (s *staticSource) Release(context.Context) {
 	logrus.WithField("component", "static-config-source").Debug("sending static config via channel")
+  
 	s.resultChan <- s.staticConfig
 }
 
-func (s *staticSource) ResultChan() <-chan *v1beta1.ClusterConfig {
-	return s.resultChan
-}
-
 func (*staticSource) Stop() {}
-
-func (s *staticSource) NeedToStoreInitialConfig() bool {
-	return false
-}
 
 func (s *staticSource) InitialConfig() *v1beta1.ClusterConfig {
 	return nil
