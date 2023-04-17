@@ -45,7 +45,7 @@ type K0sStatus struct {
 	DynamicConfig               bool
 	Args                        []string
 	WorkerToAPIConnectionStatus ProbeStatus
-	BootstrapConfig             *v1beta1.ClusterConfig
+	ClusterConfig               *v1beta1.ClusterConfig
 	K0sVars                     constant.CfgVars
 }
 
@@ -59,7 +59,11 @@ func GetStatusInfo(ctx context.Context, socketPath string) (*K0sStatus, error) {
 	status := &K0sStatus{}
 	err := retry.Do(
 		func() error {
-			return statusSocketRequest(ctx, socketPath, "status", status)
+			err := statusSocketRequest(ctx, socketPath, "status", status)
+			if err == nil && status.ClusterConfig == nil {
+				return fmt.Errorf("cluster config not yet available")
+			}
+			return err
 		},
 		retry.Context(ctx),
 		retry.LastErrorOnly(true),

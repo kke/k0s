@@ -161,6 +161,20 @@ func (c *controllerCommand) start(ctx context.Context) error {
 
 	bootstrapConfig := c.BootstrapConfig()
 
+	// common factory to get the admin kube client that's needed in many components
+	adminClientFactory := kubernetes.NewAdminClientFactory(c.K0sVars)
+
+	var configSource clusterconfig.ConfigSource
+	if c.EnableDynamicConfig {
+		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory)
+	} else {
+		configSource, err = clusterconfig.NewStaticSource(bootstrapConfig)
+	}
+	if err != nil {
+		return err
+	}
+	defer configSource.Stop()
+
 	logrus.Infof("using api address: %s", bootstrapConfig.Spec.API.Address)
 	logrus.Infof("using listen port: %d", bootstrapConfig.Spec.API.Port)
 	logrus.Infof("using sans: %s", bootstrapConfig.Spec.API.SANs)
@@ -191,8 +205,6 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	logrus.Infof("using storage backend %s", bootstrapConfig.Spec.Storage.Type)
 	c.nodeComponents.Add(ctx, storageBackend)
 
-	// common factory to get the admin kube client that's needed in many components
-	adminClientFactory := kubernetes.NewAdminClientFactory(c.K0sVars)
 	enableKonnectivity := !c.SingleNode && !slices.Contains(c.DisableComponents, constant.KonnectivityServerComponentName)
 	disableEndpointReconciler := !slices.Contains(c.DisableComponents, constant.APIEndpointReconcilerComponentName) &&
 		(bootstrapConfig.Spec.API.ExternalAddress != "" || bootstrapConfig.Spec.API.TunneledNetworkingMode)
@@ -258,18 +270,18 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	c.nodeComponents.Add(ctx, &status.Status{
 		Prober: prober.DefaultProber,
 		StatusInformation: &status.K0sStatus{
-			Pid:             os.Getpid(),
-			Role:            "controller",
-			Args:            os.Args,
-			Version:         build.Version,
-			Workloads:       c.SingleNode || c.EnableWorker,
-			SingleNode:      c.SingleNode,
-			DynamicConfig:   c.EnableDynamicConfig,
-			K0sVars:         c.K0sVars,
-			BootstrapConfig: bootstrapConfig,
+			Pid:           os.Getpid(),
+			Role:          "controller",
+			Args:          os.Args,
+			Version:       build.Version,
+			Workloads:     c.SingleNode || c.EnableWorker,
+			SingleNode:    c.SingleNode,
+			DynamicConfig: c.EnableDynamicConfig,
+			K0sVars:       c.K0sVars,
 		},
-		Socket:      c.StatusSocket,
-		CertManager: worker.NewCertificateManager(ctx, c.K0sVars.KubeletAuthConfigPath),
+		Socket:       c.StatusSocket,
+		ConfigSource: configSource,
+		CertManager:  worker.NewCertificateManager(ctx, c.K0sVars.KubeletAuthConfigPath),
 	})
 
 	perfTimer.Checkpoint("starting-certificates-init")
@@ -306,36 +318,30 @@ func (c *controllerCommand) start(ctx context.Context) error {
 		}
 	}()
 
-	var configSource clusterconfig.ConfigSource
-	// For backwards compatibility, use file as config source by default
+	var initialConfig *v1beta1.ClusterConfig
+
 	if c.EnableDynamicConfig {
-		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory, c.BootstrapConfig())
 		apiConfigSaver, err := controller.NewManifestsSaver("api-config", c.K0sVars.DataDir)
 		if err != nil {
 			return fmt.Errorf("failed to initialize api-config manifests saver: %w", err)
 		}
 
 		c.clusterComponents.Add(ctx, controller.NewCRD(apiConfigSaver, []string{"v1beta1"}))
-
-		cfgReconciler, err := controller.NewClusterConfigReconciler(
-			leaderElector,
-			c.K0sVars,
-			c.clusterComponents,
-			adminClientFactory,
-			configSource,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to initialize cluster-config reconciler: %w", err)
-		}
-		c.clusterComponents.Add(ctx, cfgReconciler)
-	} else {
-		configSource, err = clusterconfig.NewStaticSource(c.InitialConfig())
+		initialConfig = c.InitialConfig().GetClusterWideConfig().StripDefaults().CRValidator()
 	}
+
+	cfgReconciler, err := controller.NewClusterConfigReconciler(
+		leaderElector,
+		c.K0sVars,
+		c.clusterComponents,
+		adminClientFactory,
+		configSource,
+		initialConfig,
+	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to initialize cluster-config reconciler: %w", err)
 	}
-	defer configSource.Stop()
-
+	c.clusterComponents.Add(ctx, cfgReconciler)
 
 	if !slices.Contains(c.DisableComponents, constant.HelmComponentName) {
 		helmSaver, err := controller.NewManifestsSaver("helm", c.K0sVars.DataDir)

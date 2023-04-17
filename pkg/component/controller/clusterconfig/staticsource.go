@@ -30,19 +30,15 @@ type staticSource struct {
 }
 
 func NewStaticSource(staticConfig *v1beta1.ClusterConfig) (ConfigSource, error) {
-	return &staticSource{
-		config: staticConfig,
-	}, nil
+	src := &staticSource{}
+	src.config = staticConfig
+	return src, nil
 }
 
-func (s *staticSource) Release(context.Context) {
+func (s *staticSource) Start(ctx context.Context) {
 	logrus.WithField("component", "static-config-source").Debug("sending static config via channel")
-  
-	s.resultChan <- s.staticConfig
+
+	s.notifySubscribers(ctx)
 }
 
 func (*staticSource) Stop() {}
-
-func (s *staticSource) InitialConfig() *v1beta1.ClusterConfig {
-	return nil
-}

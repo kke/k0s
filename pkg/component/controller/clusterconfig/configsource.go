@@ -23,15 +23,10 @@ import (
 )
 
 type ConfigSource interface {
-	// Release allows the config source to start sending config updates
-	Release(context.Context)
-	// ResultChan provides the result channel where config updates are pushed by the source on it is released
+	// Start makes the config source start sending config updates
+	Start(context.Context)
+	// ResultChan provides the result channel where config updates are pushed by the source
 	ResultChan() <-chan *v1beta1.ClusterConfig
 	// Stop stops sending config events
 	Stop()
-	// NeedToStoreInitialConfig tells the configsource user if the initial config should be stored in the api or not
-	NeedToStoreInitialConfig() bool
-
-	// InitialConfig returns the initial config that was used to create the config source
-	InitialConfig() *v1beta1.ClusterConfig
 }

@@ -31,6 +31,7 @@ import (
 	"github.com/k0sproject/k0s/pkg/autopilot/client"
 	apclient "github.com/k0sproject/k0s/pkg/autopilot/client"
 
+	"github.com/k0sproject/k0s/pkg/component/controller/clusterconfig"
 	"github.com/k0sproject/k0s/pkg/component/manager"
 	"github.com/k0sproject/k0s/pkg/component/prober"
 
@@ -53,6 +54,7 @@ type Status struct {
 	httpserver        http.Server
 	listener          net.Listener
 	CertManager       certManager
+	ConfigSource      clusterconfig.ConfigSource
 }
 
 type certManager interface {
@@ -108,10 +110,24 @@ func removeLeftovers(socket string) {
 }
 
 // Start runs the component
-func (s *Status) Start(_ context.Context) error {
+func (s *Status) Start(ctx context.Context) error {
 	go func() {
 		if err := s.httpserver.Serve(s.listener); err != nil && err != http.ErrServerClosed {
 			s.L.Errorf("failed to start status server at %s: %s", s.Socket, err)
+		}
+	}()
+	go func() {
+		ch := s.ConfigSource.ResultChan()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case cfg, ok := <-ch:
+				if !ok {
+					return
+				}
+				s.StatusInformation.ClusterConfig = cfg
+			}
 		}
 	}()
 
@@ -125,7 +141,7 @@ func (s *Status) Stop() error {
 	if err := s.httpserver.Shutdown(ctx); err != nil && err != context.Canceled {
 		return err
 	}
-	// Unix socket doesn't need to be explicitly removed because it's hadled
+	// Unix socket doesn't need to be explicitly removed because it's handled
 	// by httpserver.Shutdown
 	return nil
 }

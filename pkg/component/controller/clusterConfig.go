@@ -47,10 +47,11 @@ type ClusterConfigReconciler struct {
 	leaderElector leaderelector.Interface
 	log           *logrus.Entry
 	configSource  clusterconfig.ConfigSource
+	initialConfig *v1beta1.ClusterConfig
 }
 
 // NewClusterConfigReconciler creates a new clusterConfig reconciler
-func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars constant.CfgVars, mgr *manager.Manager, kubeClientFactory kubeutil.ClientFactoryInterface, configSource clusterconfig.ConfigSource) (*ClusterConfigReconciler, error) {
+func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars constant.CfgVars, mgr *manager.Manager, kubeClientFactory kubeutil.ClientFactoryInterface, configSource clusterconfig.ConfigSource, initialConfig *v1beta1.ClusterConfig) (*ClusterConfigReconciler, error) {
 	configClient, err := kubeClientFactory.GetConfigClient()
 	if err != nil {
 		return nil, err
@@ -63,16 +64,18 @@ func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars c
 		log:               logrus.WithFields(logrus.Fields{"component": "clusterConfig-reconciler"}),
 		configSource:      configSource,
 		configClient:      configClient,
+		initialConfig:     initialConfig,
 	}, nil
 }
 
 func (r *ClusterConfigReconciler) Init(context.Context) error { return nil }
 
 func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
-	if r.configSource.NeedToStoreInitialConfig() {
+	if r.initialConfig != nil {
 		// We need to wait until the cluster configuration exists or we succeed in creating it.
 		err := wait.PollImmediateWithContext(ctx, 1*time.Second, 20*time.Second, func(ctx context.Context) (bool, error) {
 			var err error
+
 			if r.leaderElector.IsLeader() {
 				err = r.createClusterConfig(ctx)
 				if err == nil {
@@ -84,16 +87,16 @@ func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
 					r.log.Debug("Cluster configuration already exists")
 					return true, nil
 				}
-			} else {
-				err = r.clusterConfigExists(ctx)
-				if err == nil {
-					r.log.Debug("Cluster configuration exists")
-					return true, nil
-				}
+				return false, fmt.Errorf("failed to create cluster config: %w", err)
 			}
 
+			err = r.clusterConfigExists(ctx)
+			if err == nil {
+				r.log.Debug("Cluster configuration exists")
+				return true, nil
+			}
 			r.log.WithError(err).Debug("Failed to ensure the existence of the cluster configuration")
-			return false, nil
+			return false, err
 		})
 		if err != nil {
 			return fmt.Errorf("failed to ensure the existence of the cluster configuration: %w", err)
@@ -102,10 +105,11 @@ func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
 
 	go func() {
 		statusCtx := ctx
+		ch := r.configSource.ResultChan()
 		r.log.Debug("start listening changes from config source")
 		for {
 			select {
-			case cfg, ok := <-r.configSource.ResultChan():
+			case cfg, ok := <-ch:
 				if !ok {
 					// Recv channel close, we can stop now
 					r.log.Debug("config source closed channel")
@@ -199,7 +203,6 @@ func (r *ClusterConfigReconciler) clusterConfigExists(ctx context.Context) error
 func (r *ClusterConfigReconciler) createClusterConfig(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	clusterWideConfig := r.configSource.InitialConfig().GetClusterWideConfig().StripDefaults().CRValidator()
-	_, err := r.configClient.Create(ctx, clusterWideConfig, metav1.CreateOptions{})
+	_, err := r.configClient.Create(ctx, r.initialConfig, metav1.CreateOptions{})
 	return err
 }

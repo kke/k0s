@@ -18,12 +18,13 @@ package airgap
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"runtime"
 	"time"
 
 	"github.com/k0sproject/k0s/pkg/airgap"
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
+	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/sirupsen/logrus"
 
@@ -50,12 +51,14 @@ func NewAirgapListImagesCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(cmd.Context(), 5*time.Second)
 			defer cancel()
 
-			cfg, err := c.DynamicConfig(ctx)
+			var cfg *v1beta1.ClusterConfig
+			status, err := status.GetStatusInfo(ctx, c.StatusSocket)
 			if err != nil {
-				if !errors.Is(err, config.ErrDynamicConfigNotEnabled) {
-					logrus.WithError(err).Error("failed to get dynamic config, falling back to local config")
-				}
+				// todo: do we want to fail here?
+				logrus.WithError(err).Error("failed to get status, falling back to local config")
 				cfg = c.InitialConfig()
+			} else {
+				cfg = status.ClusterConfig
 			}
 
 			for _, uri := range airgap.GetImageURIs(cfg.Spec, all) {
