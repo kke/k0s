@@ -386,6 +386,9 @@ func (c *ClusterConfig) Validate() (errs []error) {
 
 // ValidationError returns a single error with all validation errors joined into one or nil if there are none
 func (c *ClusterConfig) ValidationError() error {
+	if c == nil {
+		return fmt.Errorf("validation failed: config is nil")
+	}
 	var messages []string
 
 	for _, err := range c.Validate() {

@@ -104,14 +104,12 @@ func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
 	}
 
 	go func() {
-		statusCtx := ctx
 		ch := r.configSource.ResultChan()
-		r.log.Debug("start listening changes from config source")
+		r.log.Debug("start listening to changes from config source")
 		for {
 			select {
-			case cfg, ok := <-ch:
-				if !ok {
-					// Recv channel close, we can stop now
+			case cfg := <-ch:
+				if cfg == nil {
 					r.log.Debug("config source closed channel")
 					return
 				}
@@ -119,7 +117,7 @@ func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
 				if err == nil {
 					err = r.ComponentManager.Reconcile(ctx, cfg)
 				}
-				r.reportStatus(statusCtx, cfg, err)
+				r.reportStatus(ctx, cfg, err)
 				if err != nil {
 					r.log.WithError(err).Error("Failed to reconcile cluster configuration")
 				} else {
