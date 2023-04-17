@@ -36,7 +36,6 @@ type apiConfigSource struct {
 
 	clientFactory kubeutil.ClientFactoryInterface
 	configClient  k0sclient.ClusterConfigInterface
-	resultChan    chan *v1beta1.ClusterConfig
 }
 
 func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface) (ConfigSource, error) {
