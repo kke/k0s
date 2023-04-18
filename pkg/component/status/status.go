@@ -24,9 +24,9 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
-	"github.com/imdario/mergo"
 	"github.com/k0sproject/k0s/internal/pkg/dir"
 
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
@@ -129,11 +129,7 @@ func (s *Status) Start(ctx context.Context) error {
 				if cfg == nil || !ok {
 					return
 				}
-				combinedCfg := s.BootstrapConfig.DeepCopy()
-				if err := mergo.Merge(combinedCfg, cfg); err != nil {
-					s.L.Errorf("failed to merge cluster config: %s", err)
-				}
-				s.StatusInformation.ClusterConfig = combinedCfg
+				s.StatusInformation.ClusterConfig = cfg
 			}
 		}
 	}()
@@ -158,6 +154,7 @@ type statusHandler struct {
 
 	client        kubeclient.Interface
 	clientFactory apclient.FactoryInterface
+	mu            sync.RWMutex
 }
 
 // ServerHTTP implementation of handler interface
@@ -165,6 +162,9 @@ func (sh *statusHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	statusInfo := sh.getCurrentStatus(r.Context())
 
 	w.Header().Set("Content-Type", "application/json")
+	sh.mu.RLock()
+	defer sh.mu.RUnlock()
+
 	if json.NewEncoder(w).Encode(statusInfo) != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
@@ -176,6 +176,9 @@ const (
 )
 
 func (sh *statusHandler) getCurrentStatus(ctx context.Context) *K0sStatus {
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
+
 	status := sh.Status.StatusInformation
 
 	if !status.Workloads {

@@ -166,9 +166,9 @@ func (c *controllerCommand) start(ctx context.Context) error {
 
 	var configSource clusterconfig.ConfigSource
 	if c.EnableDynamicConfig {
-		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory)
+		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory, bootstrapConfig)
 	} else {
-		configSource, err = clusterconfig.NewStaticSource(bootstrapConfig)
+		configSource, err = clusterconfig.NewStaticSource(c.InitialConfig())
 	}
 	if err != nil {
 		return err
