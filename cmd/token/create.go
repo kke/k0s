@@ -25,6 +25,7 @@ import (
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/token"
+	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -46,6 +47,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
+			logrus.SetOutput(cmd.ErrOrStderr())
 			return checkTokenRole(createTokenRole)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -58,9 +60,9 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 
 			ctx := cmd.Context()
 			if !waitCreate {
-				var cancel context.CancelFunc
-				ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
+				newCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 				defer cancel()
+				ctx = newCtx
 			}
 
 			statusInfo, err := status.GetStatusInfo(ctx, c.StatusSocket)

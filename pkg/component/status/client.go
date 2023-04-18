@@ -73,7 +73,7 @@ func GetStatusInfo(ctx context.Context, socketPath string) (*K0sStatus, error) {
 		}),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get k0s status: %w", err)
+		return nil, fmt.Errorf("get status: %w", err)
 	}
 	return status, nil
 }
@@ -103,13 +103,13 @@ func statusSocketRequest(ctx context.Context, socketPath string, path string, tg
 		},
 	}
 
-	response, err := httpc.Get("http://localhost/" + path)
+	response, err := httpc.Get("http://127.0.0.1/" + path)
 	if err != nil {
-		return fmt.Errorf("status: can't do http request: %v %v: %w", socketPath, path, err)
+		return fmt.Errorf("http get: %v %v: %w", socketPath, path, err)
 	}
 	defer response.Body.Close()
 
-	logrus.Debugf("status query response code: %d", response.StatusCode)
+	logrus.Debugf("response code: %d", response.StatusCode)
 
 	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(response.Body)
@@ -119,7 +119,7 @@ func statusSocketRequest(ctx context.Context, socketPath string, path string, tg
 
 	decoder := json.NewDecoder(response.Body)
 	if err := decoder.Decode(tgt); err != nil {
-		return fmt.Errorf("status: can't decode json: %w", err)
+		return fmt.Errorf("can't decode json: %w", err)
 	}
 	return nil
 }
