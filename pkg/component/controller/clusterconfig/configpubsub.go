@@ -41,12 +41,17 @@ func (p *configPubSub) notifySubscribers(ctx context.Context) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
+	if p.config == nil {
+		logrus.WithField("component", "config-source").Error("notify subscribers called with nil config")
+		return
+	}
+
 	logrus.WithField("component", "config-source").Debug("distributing config update")
 
 	for _, ch := range p.subscribers {
 		select {
 		case <-ctx.Done():
-			logrus.WithField("component", "config-source").Debug("configuration distribution context cancelled")
+			logrus.WithField("component", "config-source").Info("configuration distribution context cancelled")
 			return
 		case ch <- p.config:
 		default:

@@ -31,7 +31,7 @@ type staticSource struct {
 
 func NewStaticSource(staticConfig *v1beta1.ClusterConfig) (ConfigSource, error) {
 	src := &staticSource{}
-	src.config = staticConfig
+	src.updateConfig(staticConfig)
 	return src, nil
 }
 

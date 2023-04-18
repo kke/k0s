@@ -74,10 +74,8 @@ func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
 	if r.initialConfig != nil {
 		// We need to wait until the cluster configuration exists or we succeed in creating it.
 		err := wait.PollImmediateWithContext(ctx, 1*time.Second, 20*time.Second, func(ctx context.Context) (bool, error) {
-			var err error
-
 			if r.leaderElector.IsLeader() {
-				err = r.createClusterConfig(ctx)
+				err := r.createClusterConfig(ctx)
 				if err == nil {
 					r.log.Debug("Cluster configuration created")
 					return true, nil
@@ -90,7 +88,7 @@ func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
 				return false, fmt.Errorf("failed to create cluster config: %w", err)
 			}
 
-			err = r.clusterConfigExists(ctx)
+			err := r.clusterConfigExists(ctx)
 			if err == nil {
 				r.log.Debug("Cluster configuration exists")
 				return true, nil
@@ -108,9 +106,11 @@ func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
 		r.log.Debug("start listening to changes from config source")
 		for {
 			select {
-			case cfg := <-ch:
-				if cfg == nil {
-					r.log.Debug("config source closed channel")
+			case cfg, ok := <-ch:
+				if cfg == nil || !ok {
+					cfg = &v1beta1.ClusterConfig{}
+					cfg = cfg.CRValidator()
+					r.reportStatus(ctx, cfg, fmt.Errorf("config source closed channel"))
 					return
 				}
 				err := cfg.ValidationError()
@@ -199,6 +199,9 @@ func (r *ClusterConfigReconciler) clusterConfigExists(ctx context.Context) error
 }
 
 func (r *ClusterConfigReconciler) createClusterConfig(ctx context.Context) error {
+	if r.initialConfig == nil {
+		return fmt.Errorf("missing initial config for cluster config creation")
+	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	_, err := r.configClient.Create(ctx, r.initialConfig, metav1.CreateOptions{})
