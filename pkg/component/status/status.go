@@ -26,8 +26,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/imdario/mergo"
 	"github.com/k0sproject/k0s/internal/pkg/dir"
 
+	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/autopilot/client"
 	apclient "github.com/k0sproject/k0s/pkg/autopilot/client"
 
@@ -55,6 +57,7 @@ type Status struct {
 	listener          net.Listener
 	CertManager       certManager
 	ConfigSource      clusterconfig.ConfigSource
+	BootstrapConfig   *v1beta1.ClusterConfig
 }
 
 type certManager interface {
@@ -123,10 +126,14 @@ func (s *Status) Start(ctx context.Context) error {
 			case <-ctx.Done():
 				return
 			case cfg, ok := <-ch:
-				if !ok {
+				if cfg == nil || !ok {
 					return
 				}
-				s.StatusInformation.ClusterConfig = cfg
+				combinedCfg := s.BootstrapConfig.DeepCopy()
+				if err := mergo.Merge(combinedCfg, cfg); err != nil {
+					s.L.Errorf("failed to merge cluster config: %s", err)
+				}
+				s.StatusInformation.ClusterConfig = combinedCfg
 			}
 		}
 	}()
