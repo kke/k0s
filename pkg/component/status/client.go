@@ -105,7 +105,7 @@ func statusSocketRequest(ctx context.Context, socketPath string, path string, tg
 
 	response, err := httpc.Get("http://localhost/" + path)
 	if err != nil {
-		return fmt.Errorf("status: can't do http request: %v %v", socketPath, path)
+		return fmt.Errorf("status: can't do http request: %v %v: %w", socketPath, path, err)
 	}
 	defer response.Body.Close()
 
