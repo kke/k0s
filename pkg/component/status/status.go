@@ -29,7 +29,6 @@ import (
 
 	"github.com/k0sproject/k0s/internal/pkg/dir"
 
-	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/autopilot/client"
 	apclient "github.com/k0sproject/k0s/pkg/autopilot/client"
 
@@ -57,7 +56,6 @@ type Status struct {
 	listener          net.Listener
 	CertManager       certManager
 	ConfigSource      clusterconfig.ConfigSource
-	BootstrapConfig   *v1beta1.ClusterConfig
 }
 
 type certManager interface {
