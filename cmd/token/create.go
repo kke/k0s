@@ -59,7 +59,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 			ctx := cmd.Context()
 			if !waitCreate {
 				var cancel context.CancelFunc
-				ctx, cancel = context.WithTimeout(ctx, 2*time.Minute)
+				ctx, cancel = context.WithTimeout(ctx, 5*time.Minute)
 				defer cancel()
 			}
 
