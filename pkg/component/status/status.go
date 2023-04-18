@@ -117,6 +117,11 @@ func (s *Status) Start(ctx context.Context) error {
 			s.L.Errorf("failed to start status server at %s: %s", s.Socket, err)
 		}
 	}()
+
+	if s.ConfigSource == nil {
+		return nil
+	}
+
 	go func() {
 		ch := s.ConfigSource.ResultChan()
 		for {
