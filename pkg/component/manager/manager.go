@@ -171,6 +171,10 @@ func (m *Manager) reconcileComponent(ctx context.Context, comp Component, cfg *v
 		logrus.Debugf("%s does not implement the ReconcileComponent interface --> not reconciling it", compName)
 		return nil
 	}
+	if cfg == nil {
+		logrus.Debugf("%s not reconciling with nil config", compName)
+		return nil
+	}
 	logrus.Infof("starting to reconcile %s", compName)
 	if err := clusterComponent.Reconcile(ctx, cfg); err != nil {
 		logrus.Errorf("failed to reconcile component %s: %s", compName, err.Error())
