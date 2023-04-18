@@ -279,10 +279,9 @@ func (c *controllerCommand) start(ctx context.Context) error {
 			DynamicConfig: c.EnableDynamicConfig,
 			K0sVars:       c.K0sVars,
 		},
-		Socket:          c.StatusSocket,
-		ConfigSource:    configSource,
-		BootstrapConfig: bootstrapConfig,
-		CertManager:     worker.NewCertificateManager(ctx, c.K0sVars.KubeletAuthConfigPath),
+		Socket:       c.StatusSocket,
+		ConfigSource: configSource,
+		CertManager:  worker.NewCertificateManager(ctx, c.K0sVars.KubeletAuthConfigPath),
 	})
 
 	perfTimer.Checkpoint("starting-certificates-init")
