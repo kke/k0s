@@ -641,16 +641,13 @@ func (s *FootlooseSuite) GetJoinToken(role string, extraArgs ...string) (string,
 	}
 	defer ssh.Disconnect()
 
-	tokenCmd := fmt.Sprintf("%s token create --role=%s %s 2>/dev/null", s.K0sFullPath, role, strings.Join(extraArgs, " "))
+	tokenCmd := fmt.Sprintf("%s token create --role=%s %s", s.K0sFullPath, role, strings.Join(extraArgs, " "))
 	token, err := ssh.ExecWithOutput(s.Context(), tokenCmd)
 	if err != nil {
-		return "", fmt.Errorf("can't get join token: %v", err)
+		return "", fmt.Errorf("can't get join token: %w (%s)", err, token)
 	}
-	outputParts := strings.Split(token, "\n")
-	// in case of no k0s.conf given, there might be warnings on the first few lines
 
-	token = outputParts[len(outputParts)-1]
-	return token, nil
+	return strings.TrimSpace(token), nil
 }
 
 // RunWorkers joins all the workers to the cluster
