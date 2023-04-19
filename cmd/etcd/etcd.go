@@ -17,7 +17,9 @@ limitations under the License.
 package etcd
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/config"
@@ -36,7 +38,15 @@ func NewEtcdCmd() *cobra.Command {
 			}
 
 			c := config.GetCmdOpts(cmd)
-			storage := c.BootstrapConfig().Spec.Storage
+			ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
+			defer cancel()
+
+			cfg, err := c.RuntimeConfig(ctx)
+			if err != nil {
+				return err
+			}
+
+			storage := cfg.Spec.Storage
 
 			switch storage.Type {
 			case v1beta1.EtcdStorageType:
@@ -53,6 +63,5 @@ func NewEtcdCmd() *cobra.Command {
 	cmd.AddCommand(etcdLeaveCmd())
 	cmd.AddCommand(etcdListCmd())
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
-	// todo: this command needs the file input flag!!!  not adding now to test the alerter thing
 	return cmd
 }
