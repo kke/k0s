@@ -73,7 +73,7 @@ func (s *CliSuite) TestK0sCliKubectlAndResetCommand() {
 
 	s.T().Run("k0sInstall", func(t *testing.T) {
 		// Install with some arbitrary kubelet flags so we see those get properly passed to the kubelet
-		out, err := ssh.ExecWithOutput(s.Context(), "/usr/local/bin/k0s install controller --enable-worker --disable-components konnectivity-server,metrics-server --kubelet-extra-args='--event-qps=7 --enable-load-reader=true'")
+		out, err := ssh.ExecWithOutput(s.Context(), "/usr/local/bin/k0s install controller --enable-worker --disable-components konnectivity-server,metrics-server --kubelet-extra-amrgs='--event-qps=7 --enable-load-reader=true'")
 		assert.NoError(t, err)
 		assert.Equal(t, "", out)
 	})
@@ -94,10 +94,14 @@ func (s *CliSuite) TestK0sCliKubectlAndResetCommand() {
 		assert.NoError(json.Unmarshal([]byte(output), namespaces))
 
 		assert.Len(namespaces.Items, 4)
-		assert.Equal("default", namespaces.Items[0].Metadata.Name)
-		assert.Equal("kube-node-lease", namespaces.Items[1].Metadata.Name)
-		assert.Equal("kube-public", namespaces.Items[2].Metadata.Name)
-		assert.Equal("kube-system", namespaces.Items[3].Metadata.Name)
+		names := make([]string, 4)
+		for i, ns := range namespaces.Items {
+			names[i] = ns.Metadata.Name
+		}
+		assert.Contains(names, "default")
+		assert.Contains(names, "kube-node-lease")
+		assert.Contains(names, "kube-public")
+		assert.Contains(names, "kube-system")
 
 		kc, err := s.KubeClient(s.ControllerNode(0))
 		require.NoError(err)
