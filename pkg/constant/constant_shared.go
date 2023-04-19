@@ -229,5 +229,7 @@ func GetConfig(dataDir string) CfgVars {
 		HelmHome:             helmHome,
 		HelmRepositoryCache:  formatPath(helmHome, "cache"),
 		HelmRepositoryConfig: formatPath(helmHome, "repositories.yaml"),
+
+		DefaultStorageType: "etcd",
 	}
 }

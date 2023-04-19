@@ -17,7 +17,6 @@ limitations under the License.
 package config
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -352,7 +351,7 @@ func DefaultCLIOptions() CLIOptions {
 
 	if o.ControllerOptions.SingleNode {
 		o.ControllerOptions.EnableWorker = true
-		o.K0sVars.DefaultStorageType = "kine"
+		o.K0sVars.DefaultStorageType = v1beta1.KineStorageType
 	}
 
 	return o
@@ -459,8 +458,6 @@ func (o *CLIOptions) InitialConfig() *v1beta1.ClusterConfig {
 	}
 	return o.initialConfig
 }
-
-var ErrDynamicConfigNotEnabled = errors.New("dynamic config not enabled")
 
 // BootstrapConfig returns the minimal config required to bootstrap the cluster, the rest of the config can come from the dynamic config. Built from the initial config.
 func (o *CLIOptions) BootstrapConfig() *v1beta1.ClusterConfig {
