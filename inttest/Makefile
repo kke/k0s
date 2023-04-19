@@ -112,7 +112,7 @@ $(smoketests):
 	K0S_UPDATE_FROM_PATH='$(K0S_UPDATE_FROM_PATH)' \
 	K0S_IMAGES_BUNDLE='$(K0S_IMAGES_BUNDLE)' \
 	K0S_UPDATE_TO_VERSION='$(K0S_UPDATE_TO_VERSION)' \
-	go test -count=1 -v -timeout $(__TIMEOUT) github.com/k0sproject/k0s/inttest/$(TEST_PACKAGE)
+	go test -count=1 -v -timeout $(TIMEOUT) github.com/k0sproject/k0s/inttest/$(TEST_PACKAGE)
 .PHONY: clean
 
 clean:
