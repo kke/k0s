@@ -49,6 +49,8 @@ import (
 type command struct {
 	config.CLIOptions
 	client kubernetes.Interface
+
+	cfg *v1beta1.ClusterConfig
 }
 
 const (
@@ -87,8 +89,18 @@ func (c *command) start() (err error) {
 
 	prefix := "/v1beta1"
 	mux := http.NewServeMux()
-	bootstrapConfig := c.BootstrapConfig()
-	storage := bootstrapConfig.Spec.Storage
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel()
+
+	cfg, err := c.RuntimeConfig(ctx)
+	if err != nil {
+		return err
+	}
+
+	c.cfg = cfg
+
+	storage := cfg.Spec.Storage
 
 	if storage.Type == v1beta1.EtcdStorageType && !storage.Etcd.IsExternal() {
 		// Only mount the etcd handler if we're running on internal etcd storage
@@ -106,7 +118,7 @@ func (c *command) start() (err error) {
 
 	srv := &http.Server{
 		Handler: mux,
-		Addr:    fmt.Sprintf(":%d", bootstrapConfig.Spec.API.K0sAPIPort),
+		Addr:    fmt.Sprintf(":%d", cfg.Spec.API.K0sAPIPort),
 		TLSConfig: &tls.Config{
 			MinVersion:   tls.VersionTLS12,
 			CipherSuites: constant.AllowedTLS12CipherSuiteIDs,
@@ -227,7 +239,7 @@ users:
 				Token     string
 				Namespace string
 			}{
-				Server:    c.BootstrapConfig().Spec.API.APIAddressURL(),
+				Server:    c.cfg.Spec.API.APIAddressURL(),
 				Ca:        base64.StdEncoding.EncodeToString(secretWithToken.Data["ca.crt"]),
 				Token:     string(secretWithToken.Data["token"]),
 				Namespace: string(secretWithToken.Data["namespace"]),
