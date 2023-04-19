@@ -57,48 +57,48 @@ check-conformance: bin/sonobuoy
 get-conformance-results: bin/sonobuoy
 	$(realpath bin/sonobuoy) retrieve
 
-TIMEOUT ?= 4m
+TIMEOUT ?= 15m
 
-check-ctr: TIMEOUT=10m
-check-byocri: TIMEOUT=5m
+check-ctr: __TIMEOUT=10m
+check-byocri: __TIMEOUT=5m
 # readiness check for metric tests takes between around 5 and 6 minutes.
-check-metrics: TIMEOUT=6m
-check-metricsscraper: TIMEOUT=6m
+check-metrics: __TIMEOUT=6m
+check-metricsscraper: __TIMEOUT=6m
 
-check-calico: TIMEOUT=6m
+check-calico: __TIMEOUT=6m
 
 # Establishing konnectivity tunnels with the LB in place takes a while, thus a bit longer timeout for the smoke
-check-customports: TIMEOUT=6m
+check-customports: __TIMEOUT=6m
 
 # Config change smoke runs actually many cases hence a bit longer timeout
-check-configchange: TIMEOUT=8m
+check-configchange: __TIMEOUT=8m
 
 # Backup check runs two scenarios
-check-backup: TIMEOUT=10m
+check-backup: __TIMEOUT=10m
 
 # Autopilot 3x3 HA test can take a while to run
 check-ap-ha3x3: K0S_UPDATE_FROM_BIN ?= ../k0s
 check-ap-ha3x3: K0S_UPDATE_FROM_PATH ?= $(realpath $(K0S_UPDATE_FROM_BIN))
-check-ap-ha3x3: TIMEOUT=6m
+check-ap-ha3x3: __TIMEOUT=6m
 
 check-customports-dynamicconfig: export K0S_ENABLE_DYNAMIC_CONFIG=true
 check-customports-dynamicconfig: TEST_PACKAGE=customports
 
-check-kubeletcertrotate: TIMEOUT=15m
+check-kubeletcertrotate: __TIMEOUT=15m
 
 check-dualstack-dynamicconfig: export K0S_ENABLE_DYNAMIC_CONFIG=true
 check-dualstack-dynamicconfig: TEST_PACKAGE=dualstack
 
 check-ap-updater: .update-server.stamp
 
-check-network-conformance-kuberouter: TIMEOUT=15m
+check-network-conformance-kuberouter: __TIMEOUT=15m
 check-network-conformance-kuberouter: export K0S_NETWORK_CONFORMANCE_CNI=kuberouter
 check-network-conformance-kuberouter: TEST_PACKAGE=network-conformance
-check-network-conformance-calico: TIMEOUT=15m
+check-network-conformance-calico: __TIMEOUT=15m
 check-network-conformance-calico: export K0S_NETWORK_CONFORMANCE_CNI=calico
 check-network-conformance-calico: TEST_PACKAGE=network-conformance
 
-check-nllb: TIMEOUT=10m
+check-nllb: __TIMEOUT=10m
 
 .PHONY: $(smoketests)
 include Makefile.variables
@@ -112,7 +112,7 @@ $(smoketests):
 	K0S_UPDATE_FROM_PATH='$(K0S_UPDATE_FROM_PATH)' \
 	K0S_IMAGES_BUNDLE='$(K0S_IMAGES_BUNDLE)' \
 	K0S_UPDATE_TO_VERSION='$(K0S_UPDATE_TO_VERSION)' \
-	go test -count=1 -v -timeout $(TIMEOUT) github.com/k0sproject/k0s/inttest/$(TEST_PACKAGE)
+	go test -count=1 -v -timeout $(__TIMEOUT) github.com/k0sproject/k0s/inttest/$(TEST_PACKAGE)
 .PHONY: clean
 
 clean:
