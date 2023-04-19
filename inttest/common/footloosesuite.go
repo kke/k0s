@@ -934,7 +934,7 @@ func nodeValuePatchAdd(ctx context.Context, node string, kc *kubernetes.Clientse
 // Timeouts with error return in 5 mins
 func (s *FootlooseSuite) WaitForKubeAPI(node string, k0sKubeconfigArgs ...string) error {
 	s.T().Logf("waiting for kube api to start on node %s", node)
-	return Poll(s.Context(), func(context.Context) (done bool, err error) {
+	err := Poll(s.Context(), func(context.Context) (done bool, err error) {
 		kc, err := s.KubeClient(node, k0sKubeconfigArgs...)
 		if err != nil {
 			s.T().Logf("kube-client error: %v", err)
@@ -962,13 +962,18 @@ func (s *FootlooseSuite) WaitForKubeAPI(node string, k0sKubeconfigArgs ...string
 
 		return true, nil
 	})
+	if err != nil {
+		s.T().Logf("kube api not up: %v", err)
+		return err
+	}
+	return nil
 }
 
 // WaitJoinApi waits until we see k0s join api up-and-running on a given node
 // Timeouts with error return in 5 mins
 func (s *FootlooseSuite) WaitJoinAPI(node string) error {
 	s.T().Logf("waiting for join api to start on node %s", node)
-	return Poll(s.Context(), func(context.Context) (done bool, err error) {
+	err := Poll(s.Context(), func(context.Context) (done bool, err error) {
 		joinAPIStatus, err := s.GetHTTPStatus(node, "/v1beta1/ca")
 		if err != nil {
 			return false, nil
@@ -982,6 +987,11 @@ func (s *FootlooseSuite) WaitJoinAPI(node string) error {
 
 		return true, nil
 	})
+	if err != nil {
+		s.T().Logf("join api not up: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (s *FootlooseSuite) GetHTTPStatus(node string, path string) (int, error) {
