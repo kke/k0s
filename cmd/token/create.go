@@ -25,7 +25,6 @@ import (
 	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/token"
-	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -46,7 +45,6 @@ func tokenCreateCmd() *cobra.Command {
 k0s token create --role worker --expiry 10m  //sets expiration time to 10 minutes
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			logrus.SetOutput(cmd.ErrOrStderr())
 			return checkTokenRole(createTokenRole)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {

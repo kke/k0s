@@ -72,6 +72,8 @@ type CLIOptions struct {
 	bootstrapConfig *v1beta1.ClusterConfig
 
 	stdin io.Reader
+
+	hasFileInputFlag bool
 }
 
 // Copy returns a deep copy of the CLIOptions struct
@@ -360,6 +362,7 @@ func DefaultCLIOptions() CLIOptions {
 func GetCmdOpts(cmd *cobra.Command) CLIOptions {
 	o := DefaultCLIOptions()
 	o.stdin = cmd.InOrStdin()
+	o.hasFileInputFlag = cmd.Flags().Lookup("config") != nil
 
 	return o
 }
@@ -453,6 +456,9 @@ func (o *CLIOptions) getConfigFile() *v1beta1.ClusterConfig {
 
 // InitialConfig is the configuration as read from the config file or stdin or generated from defaults on startup
 func (o *CLIOptions) InitialConfig() *v1beta1.ClusterConfig {
+	if !o.hasFileInputFlag {
+		panic("InitialConfig() called on a command that does not have a config file flag")
+	}
 	if o.initialConfig == nil {
 		o.initialConfig = o.getConfigFile()
 	}
@@ -461,6 +467,9 @@ func (o *CLIOptions) InitialConfig() *v1beta1.ClusterConfig {
 
 // BootstrapConfig returns the minimal config required to bootstrap the cluster, the rest of the config can come from the dynamic config. Built from the initial config.
 func (o *CLIOptions) BootstrapConfig() *v1beta1.ClusterConfig {
+	if !o.hasFileInputFlag {
+		panic("BootstrapConfig() called on a command that does not have a config file flag")
+	}
 	if o.bootstrapConfig == nil {
 		o.bootstrapConfig = o.InitialConfig().GetBootstrappingConfig()
 	}

@@ -68,6 +68,10 @@ func NewRootCmd() *cobra.Command {
 		Use:   "k0s",
 		Short: "k0s - Zero Friction Kubernetes",
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
+			// log info is sent to stderr to avoid breaking the output of commands like `k0s token create`
+			// it is explicitly set to stdout for foreground commands like `k0s controller`
+			k0slog.SetOutput(cmd.ErrOrStderr())
+
 			if config.Verbose {
 				k0slog.SetInfoLevel()
 			}

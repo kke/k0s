@@ -22,7 +22,6 @@ import (
 	"strings"
 
 	"github.com/k0sproject/k0s/pkg/config"
-	"github.com/sirupsen/logrus"
 
 	"github.com/spf13/cobra"
 )
@@ -35,9 +34,6 @@ func kubeConfigAdminCmd() *cobra.Command {
 		Example: `	$ k0s kubeconfig admin > ~/.kube/config
 	$ export KUBECONFIG=~/.kube/config
 	$ kubectl get nodes`,
-		PreRun: func(cmd *cobra.Command, args []string) {
-			logrus.SetOutput(cmd.ErrOrStderr())
-		},
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			c := config.GetCmdOpts(cmd)
 			content, err := os.ReadFile(c.K0sVars.AdminKubeConfigPath)

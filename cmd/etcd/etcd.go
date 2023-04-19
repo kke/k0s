@@ -53,5 +53,6 @@ func NewEtcdCmd() *cobra.Command {
 	cmd.AddCommand(etcdLeaveCmd())
 	cmd.AddCommand(etcdListCmd())
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	// todo: this command needs the file input flag!!!  not adding now to test the alerter thing
 	return cmd
 }

@@ -69,7 +69,6 @@ func NewStatusSubCmdComponents() *cobra.Command {
 		Short:   "Get k0s instance component status information",
 		Example: `The command will return information about k0s components.`,
 		PreRun: func(cmd *cobra.Command, args []string) {
-			logrus.SetOutput(cmd.ErrOrStderr())
 			logrus.Warn("all of the components do not provide full status reports yet, the output of this command may be inaccurate")
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {

@@ -17,6 +17,8 @@ limitations under the License.
 package log
 
 import (
+	"io"
+
 	cfssllog "github.com/cloudflare/cfssl/log"
 	"github.com/sirupsen/logrus"
 )
@@ -45,4 +47,8 @@ func SetInfoLevel() {
 func SetWarnLevel() {
 	logrus.SetLevel(logrus.WarnLevel)
 	cfssllog.Level = cfssllog.LevelWarning
+}
+
+func SetOutput(w io.Writer) {
+	logrus.SetOutput(w)
 }
