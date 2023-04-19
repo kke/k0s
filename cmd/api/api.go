@@ -74,7 +74,6 @@ func NewAPICmd() *cobra.Command {
 			return (&command{CLIOptions: config.GetCmdOpts(cmd)}).start()
 		},
 	}
-	cmd.SilenceUsage = true
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
 	return cmd
 }

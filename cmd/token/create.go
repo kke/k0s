@@ -46,7 +46,6 @@ func tokenCreateCmd() *cobra.Command {
 k0s token create --role worker --expiry 10m  //sets expiration time to 10 minutes
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			cmd.SilenceUsage = true
 			logrus.SetOutput(cmd.ErrOrStderr())
 			return checkTokenRole(createTokenRole)
 		},

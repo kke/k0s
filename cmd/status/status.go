@@ -40,8 +40,6 @@ func NewStatusCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 
-			cmd.SilenceUsage = true
-
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("currently not supported on windows")
 			}
@@ -58,7 +56,6 @@ func NewStatusCmd() *cobra.Command {
 		},
 	}
 
-	cmd.SilenceUsage = true
 	cmd.PersistentFlags().StringVarP(&output, "out", "o", "", "sets type of output to json or yaml")
 	cmd.PersistentFlags().StringVar(&config.StatusSocket, "status-socket", "", "Full file path to the socket file. (default: <rundir>/status.sock)")
 	cmd.AddCommand(NewStatusSubCmdComponents())
@@ -78,7 +75,6 @@ func NewStatusSubCmdComponents() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
 
-			cmd.SilenceUsage = true
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("currently not supported on windows")
 			}

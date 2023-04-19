@@ -33,14 +33,12 @@ Windows flags like "--api-server", "--cidr-range" and "--cluster-dns" will be ig
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := command{config.GetCmdOpts(cmd)}
 			if err := c.convertFileParamsToAbsolute(); err != nil {
-				cmd.SilenceUsage = true
 				return err
 			}
 
 			flagsAndVals := []string{"worker"}
 			flagsAndVals = append(flagsAndVals, cmdFlagsToArgs(cmd)...)
 			if err := c.setup("worker", flagsAndVals, installFlags); err != nil {
-				cmd.SilenceUsage = true
 				return err
 			}
 

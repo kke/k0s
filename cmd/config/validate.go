@@ -33,7 +33,6 @@ func NewValidateCmd() *cobra.Command {
 			return c.InitialConfig().ValidationError()
 
 		},
-		SilenceUsage: true,
 	}
 
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())

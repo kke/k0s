@@ -117,8 +117,6 @@ func newCommandCreate() *cobra.Command {
 						return err
 					}
 
-					cmd.SilenceUsage = true
-
 					// If a binary is specified, ensure it exists and extract the version information from it.
 					// Otherwise, k0sctl will attempt to download the specified version.
 
@@ -158,8 +156,6 @@ func newCommandDestroy() *cobra.Command {
 					if err := provider.Init(ctx); err != nil {
 						return fmt.Errorf("failed to initialize AWS provider: %w", err)
 					}
-
-					cmd.SilenceUsage = true
 
 					return nil
 				},

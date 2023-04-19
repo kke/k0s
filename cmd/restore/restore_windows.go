@@ -33,6 +33,5 @@ func NewRestoreCmd() *cobra.Command {
 		},
 	}
 
-	cmd.SilenceUsage = true
 	return cmd
 }

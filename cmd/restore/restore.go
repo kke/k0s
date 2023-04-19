@@ -60,8 +60,6 @@ func NewRestoreCmd() *cobra.Command {
 		},
 	}
 
-	cmd.SilenceUsage = true
-
 	cwd, err := os.Getwd()
 	if err != nil {
 		logrus.Fatal("failed to get local path")

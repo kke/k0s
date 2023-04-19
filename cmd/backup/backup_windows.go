@@ -32,6 +32,5 @@ func NewBackupCmd() *cobra.Command {
 			return errors.New("unsupported Operating System for this command")
 		},
 	}
-	cmd.SilenceUsage = true
 	return cmd
 }

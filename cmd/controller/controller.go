@@ -106,7 +106,6 @@ func NewControllerCmd() *cobra.Command {
 				}
 				c.TokenArg = string(bytes)
 			}
-			cmd.SilenceUsage = true
 
 			if err := (&sysinfo.K0sSysinfoSpec{
 				ControllerRoleEnabled: true,

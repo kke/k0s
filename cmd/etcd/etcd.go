@@ -27,8 +27,9 @@ import (
 
 func NewEtcdCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "etcd",
-		Short: "Manage etcd cluster",
+		Use:              "etcd",
+		Short:            "Manage etcd cluster",
+		TraverseChildren: true, // otherwise flags aren't parsed for this umbrella command, breaking prerun
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			if err := config.CallParentPersistentPreRun(cmd, args); err != nil {
 				return err
@@ -49,7 +50,6 @@ func NewEtcdCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.SilenceUsage = true
 	cmd.AddCommand(etcdLeaveCmd())
 	cmd.AddCommand(etcdListCmd())
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())

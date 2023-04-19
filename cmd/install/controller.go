@@ -79,13 +79,11 @@ With the controller subcommand you can setup a single node cluster by running:
 			c := command{config.GetCmdOpts(cmd)}
 
 			if err := c.convertFileParamsToAbsolute(); err != nil {
-				cmd.SilenceUsage = true
 				return err
 			}
 			flagsAndVals := []string{"controller"}
 			flagsAndVals = append(flagsAndVals, cmdFlagsToArgs(cmd)...)
 			if err := c.setup("controller", flagsAndVals, installFlags); err != nil {
-				cmd.SilenceUsage = true
 				return err
 			}
 			return nil

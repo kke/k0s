@@ -50,6 +50,17 @@ import (
 	"github.com/spf13/cobra/doc"
 )
 
+func setDefaults(cmd *cobra.Command) {
+	if len(cmd.Commands()) == 0 {
+		// Disable showing help when error happens for commands that don't have subcommands
+		cmd.SilenceUsage = true
+	}
+
+	for _, subcmd := range cmd.Commands() {
+		setDefaults(subcmd)
+	}
+}
+
 func NewRootCmd() *cobra.Command {
 	var longDesc string
 
@@ -109,6 +120,9 @@ func NewRootCmd() *cobra.Command {
 		longDesc = longDesc + "\n" + build.EulaNotice
 	}
 	cmd.Long = longDesc
+
+	setDefaults(cmd)
+
 	return cmd
 }
 
@@ -170,9 +184,8 @@ $ k0s completion fish | source
 # To load completions for each session, execute once:
 $ k0s completion fish > ~/.config/fish/completions/k0s.fish
 `,
-		DisableFlagsInUseLine: true,
-		ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
-		Args:                  cobra.ExactValidArgs(1),
+		ValidArgs: []string{"bash", "zsh", "fish", "powershell"},
+		Args:      cobra.ExactValidArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			out := cmd.OutOrStdout()
 			switch args[0] {
