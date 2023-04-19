@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -27,6 +28,7 @@ import (
 
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	aproot "github.com/k0sproject/k0s/pkg/autopilot/controller/root"
+	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/constant"
 	"github.com/k0sproject/k0s/pkg/k0scloudprovider"
 
@@ -476,4 +478,13 @@ func (o *CLIOptions) BootstrapConfig() *v1beta1.ClusterConfig {
 		o.bootstrapConfig = o.InitialConfig().GetBootstrappingConfig()
 	}
 	return o.bootstrapConfig
+}
+
+// RuntimeConfig returns config from the status socket
+func (o *CLIOptions) RuntimeConfig(ctx context.Context) (*v1beta1.ClusterConfig, error) {
+	statusInfo, err := status.GetStatusInfo(ctx, o.StatusSocket)
+	if err != nil {
+		return nil, fmt.Errorf("get runtime config: get status: %w", err)
+	}
+	return statusInfo.ClusterConfig, nil
 }

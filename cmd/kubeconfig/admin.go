@@ -17,9 +17,11 @@ limitations under the License.
 package kubeconfig
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/k0sproject/k0s/pkg/config"
 
@@ -27,6 +29,7 @@ import (
 )
 
 func kubeConfigAdminCmd() *cobra.Command {
+	var waitRunning bool
 	cmd := &cobra.Command{
 		Use:   "admin",
 		Short: "Display Admin's Kubeconfig file",
@@ -41,12 +44,25 @@ func kubeConfigAdminCmd() *cobra.Command {
 				return fmt.Errorf("failed to read admin config, check if the control plane is initialized on this node: %w", err)
 			}
 
-			clusterAPIURL := c.BootstrapConfig().Spec.API.APIAddressURL()
+			ctx := cmd.Context()
+			if !waitRunning {
+				newCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+				defer cancel()
+				ctx = newCtx
+			}
+
+			cfg, err := c.RuntimeConfig(ctx)
+			if err != nil {
+				return err
+			}
+
+			clusterAPIURL := cfg.Spec.API.APIAddressURL()
 			newContent := strings.ReplaceAll(string(content), "https://localhost:6443", clusterAPIURL)
 			_, err = cmd.OutOrStdout().Write([]byte(newContent))
 			return err
 		},
 	}
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
+	cmd.Flags().BoolVar(&waitRunning, "wait", false, "wait forever (default false)")
 	return cmd
 }
