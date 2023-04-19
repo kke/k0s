@@ -46,12 +46,13 @@ type Manager struct {
 }
 
 // New creates a manager
-func New(prober prober) *Manager {
+func New(prober prober, cfg *v1beta1.ClusterConfig) *Manager {
 	return &Manager{
-		Components:        []Component{},
-		ReadyWaitDuration: 2 * time.Minute,
-		started:           list.New(),
-		prober:            prober,
+		Components:           []Component{},
+		ReadyWaitDuration:    2 * time.Minute,
+		started:              list.New(),
+		prober:               prober,
+		lastReconciledConfig: cfg,
 	}
 }
 

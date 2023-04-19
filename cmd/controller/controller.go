@@ -85,7 +85,7 @@ func NewControllerCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := config.GetCmdOpts(cmd)
-			c := &controllerCommand{opts, manager.New(prober.DefaultProber), manager.New(prober.DefaultProber)}
+			c := &controllerCommand{opts, manager.New(prober.DefaultProber, opts.BootstrapConfig()), manager.New(prober.DefaultProber, opts.BootstrapConfig())}
 			if err := c.InitialConfig().ValidationError(); err != nil {
 				return err
 			}
