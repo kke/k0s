@@ -73,7 +73,7 @@ func (s *CliSuite) TestK0sCliKubectlAndResetCommand() {
 
 	s.T().Run("k0sInstall", func(t *testing.T) {
 		// Install with some arbitrary kubelet flags so we see those get properly passed to the kubelet
-		out, err := ssh.ExecWithOutput(s.Context(), "/usr/local/bin/k0s install controller --enable-worker --disable-components konnectivity-server,metrics-server --kubelet-extra-amrgs='--event-qps=7 --enable-load-reader=true'")
+		out, err := ssh.ExecWithOutput(s.Context(), "/usr/local/bin/k0s install controller --enable-worker --disable-components konnectivity-server,metrics-server --kubelet-extra-args='--event-qps=7 --enable-load-reader=true'")
 		assert.NoError(t, err)
 		assert.Equal(t, "", out)
 	})
