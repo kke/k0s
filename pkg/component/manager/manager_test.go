@@ -58,7 +58,7 @@ func (f *Fake) Ready() error {
 }
 
 func TestManagerSuccess(t *testing.T) {
-	m := New(proberPackage.NopProber{})
+	m := New(proberPackage.NopProber{}, nil)
 	require.NotNil(t, m)
 
 	ctx := context.Background()
@@ -84,7 +84,7 @@ func TestManagerSuccess(t *testing.T) {
 }
 
 func TestManagerInitFail(t *testing.T) {
-	m := New(proberPackage.NopProber{})
+	m := New(proberPackage.NopProber{}, nil)
 	require.NotNil(t, m)
 
 	ctx := context.Background()
@@ -104,7 +104,7 @@ func TestManagerInitFail(t *testing.T) {
 }
 
 func TestManagerRunFail(t *testing.T) {
-	m := New(proberPackage.NopProber{})
+	m := New(proberPackage.NopProber{}, nil)
 	require.NotNil(t, m)
 
 	ctx := context.Background()
@@ -135,7 +135,7 @@ func TestManagerRunFail(t *testing.T) {
 }
 
 func TestManagerHealthyFail(t *testing.T) {
-	m := New(proberPackage.NopProber{})
+	m := New(proberPackage.NopProber{}, nil)
 	require.NotNil(t, m)
 	m.ReadyWaitDuration = 1 * time.Millisecond
 

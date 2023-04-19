@@ -121,7 +121,7 @@ func (c *Command) Start(ctx context.Context) error {
 
 	logLevels := stringmap.Merge(c.LogLevels, config.DefaultLogLevels())
 
-	componentManager := manager.New(prober.DefaultProber)
+	componentManager := manager.New(prober.DefaultProber, nil)
 
 	var staticPods worker.StaticPods
 
