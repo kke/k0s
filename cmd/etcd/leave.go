@@ -40,20 +40,21 @@ func etcdLeaveCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer cancel()
 
-			cfg, err := c.RuntimeConfig(ctx)
+			etcdCfg, err := etcdConfigFromContext(cmd.Context())
 			if err != nil {
 				return err
 			}
 
 			if etcdPeerAddress == "" {
-				etcdPeerAddress = cfg.Spec.Storage.Etcd.PeerAddress
+				etcdPeerAddress = etcdCfg.PeerAddress
 			}
+
 			if etcdPeerAddress == "" {
 				return fmt.Errorf("can't leave etcd cluster: peer address is empty, check the config file or use cli argument")
 			}
 
 			peerURL := fmt.Sprintf("https://%s:2380", etcdPeerAddress)
-			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, cfg.Spec.Storage.Etcd)
+			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, etcdCfg)
 			if err != nil {
 				return fmt.Errorf("can't connect to the etcd: %v", err)
 			}

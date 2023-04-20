@@ -48,7 +48,7 @@ type Konnectivity struct {
 	SingleNode bool
 	// used for lease lock
 	KubeClientFactory kubeutil.ClientFactoryInterface
-	NodeConfig        *v1beta1.ClusterConfig
+	APISpec           *v1beta1.APISpec
 
 	supervisor          *supervisor.Supervisor
 	uid                 int
@@ -110,6 +110,16 @@ func (k *Konnectivity) Start(ctx context.Context) error {
 
 // Reconcile detects changes in configuration and applies them to the component
 func (k *Konnectivity) Reconcile(ctx context.Context, clusterCfg *v1beta1.ClusterConfig) error {
+	if clusterCfg == nil {
+		k.log.Debug("cluster config is not yet available, skipping reconcile")
+		return nil
+	}
+
+	if clusterCfg.Spec.Konnectivity == nil {
+		k.log.Debug("cluster config does not define konnectivity, skipping reconcile")
+		return nil
+	}
+
 	k.clusterConfig = clusterCfg
 	if !k.SingleNode {
 		go k.runLeaseCounter(ctx)
@@ -251,17 +261,17 @@ func (k *Konnectivity) writeKonnectivityAgent() error {
 	cfg := konnectivityAgentConfig{
 		// Since the konnectivity server runs with hostNetwork=true this is the
 		// IP address of the master machine
-		ProxyServerHost: k.NodeConfig.Spec.API.APIAddress(), // TODO: should it be an APIAddress?
+		ProxyServerHost: k.APISpec.APIAddress(), // TODO: should it be an APIAddress?
 		ProxyServerPort: uint16(k.clusterConfig.Spec.Konnectivity.AgentPort),
 		Image:           k.clusterConfig.Spec.Images.Konnectivity.URI(),
 		ServerCount:     k.serverCount,
 		PullPolicy:      k.clusterConfig.Spec.Images.DefaultPullPolicy,
 	}
 
-	if k.NodeConfig.Spec.API.TunneledNetworkingMode {
+	if k.APISpec.TunneledNetworkingMode {
 		cfg.HostNetwork = true
 		cfg.BindToNodeIP = true // agent needs to listen on the node IP to be on pair with the tunneled network reconciler
-		cfg.APIServerPortMapping = fmt.Sprintf("6443:localhost:%d", k.clusterConfig.Spec.API.Port)
+		cfg.APIServerPortMapping = fmt.Sprintf("6443:localhost:%d", k.APISpec.Port)
 	} else {
 		cfg.FeatureGates = "NodeToMasterTraffic=false"
 	}

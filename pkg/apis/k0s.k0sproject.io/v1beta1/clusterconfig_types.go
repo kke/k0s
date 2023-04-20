@@ -411,9 +411,14 @@ func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
 	}
 
 	cfg := c.DeepCopy()
+
 	storage := cfg.Spec.Storage
-	network := cfg.Spec.Network
-	network.PodCIDR = ""
+
+	network := &Network{
+		ServiceCIDR:   cfg.Spec.Network.ServiceCIDR,
+		DualStack:     cfg.Spec.Network.DualStack,
+		ClusterDomain: cfg.Spec.Network.ClusterDomain,
+	}
 
 	if storage.Type == EtcdStorageType {
 		cfg.Spec.Storage.Etcd = &EtcdConfig{
@@ -421,6 +426,7 @@ func (c *ClusterConfig) GetBootstrappingConfig() *ClusterConfig {
 			PeerAddress:     storage.Etcd.PeerAddress,
 			ExtraArgs:       storage.Etcd.ExtraArgs,
 		}
+		cfg.Spec.Storage.Kine = nil
 	} else {
 		cfg.Spec.Storage.Etcd = nil
 	}

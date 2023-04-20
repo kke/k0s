@@ -73,6 +73,16 @@ func (a *Scheduler) Stop() error {
 func (a *Scheduler) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
 	logrus.Debug("reconcile method called for: Scheduler")
 
+	if clusterConfig == nil {
+		logrus.WithField("component", "scheduler").Debug("cluster config not yet available, skipping reconcile")
+		return nil
+	}
+
+	if clusterConfig.Spec.Scheduler == nil {
+		logrus.WithField("component", "scheduler").Debug("cluster config does not sprecify scheduler, skipping reconcile")
+		return nil
+	}
+
 	logrus.Info("Starting kube-scheduler")
 	schedulerAuthConf := filepath.Join(a.K0sVars.CertRootDir, "scheduler.conf")
 	args := stringmap.StringMap{

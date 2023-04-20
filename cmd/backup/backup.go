@@ -48,10 +48,7 @@ func NewBackupCmd() *cobra.Command {
 		Short: "Back-Up k0s configuration. Must be run as root (or with sudo)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := &command{config.GetCmdOpts(cmd)}
-			if c.BootstrapConfig().Spec.Storage.Etcd.IsExternal() {
-				return fmt.Errorf("command 'k0s backup' does not support external etcd clusters")
-			}
-			return c.backup(savePath, cmd.OutOrStdout())
+			return c.backup(cmd.Context(), savePath, cmd.OutOrStdout())
 		},
 	}
 	cmd.Flags().StringVar(&savePath, "save-path", "", "destination directory path for backup assets, use '-' for stdout")
@@ -59,7 +56,7 @@ func NewBackupCmd() *cobra.Command {
 	return cmd
 }
 
-func (c *command) backup(savePath string, out io.Writer) error {
+func (c *command) backup(ctx context.Context, savePath string, out io.Writer) error {
 	if os.Geteuid() != 0 {
 		logrus.Fatal("this command must be run as root!")
 	}
@@ -72,13 +69,16 @@ func (c *command) backup(savePath string, out io.Writer) error {
 		return fmt.Errorf("cannot find data-dir (%v). check your environment and/or command input and try again", c.K0sVars.DataDir)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	status, err := status.GetStatusInfo(ctx, c.StatusSocket)
 	if err != nil {
 		return fmt.Errorf("unable to detect cluster status %s", err)
 	}
-	logrus.Debugf("detected role for backup operations: %v", status.Role)
+
+	if status.BootstrapConfig.Spec.Storage.Etcd.IsExternal() {
+		return fmt.Errorf("command 'k0s backup' does not support external etcd clusters")
+	}
 
 	if strings.Contains(status.Role, "controller") {
 		mgr, err := backup.NewBackupManager()
@@ -86,7 +86,7 @@ func (c *command) backup(savePath string, out io.Writer) error {
 			return err
 		}
 		// todo: not sure which config to use here. it's included in the backup as k0s.yaml
-		return mgr.RunBackup(c.InitialConfig(), c.K0sVars, savePath, out)
+		return mgr.RunBackup(status.BootstrapConfig, c.K0sVars, savePath, out)
 	}
 	return fmt.Errorf("backup command must be run on the controller node, have `%s`", status.Role)
 }

@@ -85,26 +85,34 @@ func NewControllerCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			opts := config.GetCmdOpts(cmd)
-			c := &controllerCommand{opts, manager.New(prober.DefaultProber, opts.BootstrapConfig()), manager.New(prober.DefaultProber, opts.BootstrapConfig())}
-			if err := c.InitialConfig().ValidationError(); err != nil {
+			if err := opts.InitialConfig().ValidationError(); err != nil {
 				return err
+			}
+
+			c := &controllerCommand{
+				opts,
+				manager.New(prober.DefaultProber, opts.BootstrapConfig()),
+				manager.New(prober.DefaultProber, opts.BootstrapConfig()),
 			}
 
 			if len(args) > 0 {
 				c.TokenArg = args[0]
 			}
+
 			if len(c.TokenArg) > 0 && len(c.TokenFile) > 0 {
 				return fmt.Errorf("you can only pass one token argument either as a CLI argument 'k0s controller [join-token]' or as a flag 'k0s controller --token-file [path]'")
 			}
-			if err := c.ControllerOptions.Normalize(); err != nil {
-				return err
-			}
+
 			if len(c.TokenFile) > 0 {
 				bytes, err := os.ReadFile(c.TokenFile)
 				if err != nil {
 					return err
 				}
 				c.TokenArg = string(bytes)
+			}
+
+			if err := c.ControllerOptions.Normalize(); err != nil {
+				return err
 			}
 
 			if err := (&sysinfo.K0sSysinfoSpec{
@@ -117,6 +125,7 @@ func NewControllerCmd() *cobra.Command {
 
 			ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 			defer cancel()
+
 			return c.start(ctx)
 		},
 	}
@@ -163,11 +172,12 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	// common factory to get the admin kube client that's needed in many components
 	adminClientFactory := kubernetes.NewAdminClientFactory(c.K0sVars)
 
+	// configSource will only return "clusterwide config"
 	var configSource clusterconfig.ConfigSource
 	if c.EnableDynamicConfig {
-		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory, bootstrapConfig)
+		configSource, err = clusterconfig.NewAPIConfigSource(adminClientFactory)
 	} else {
-		configSource, err = clusterconfig.NewStaticSource(c.InitialConfig())
+		configSource, err = clusterconfig.NewStaticSource(c.InitialConfig().GetClusterWideConfig().CRValidator())
 	}
 	if err != nil {
 		return err
@@ -244,10 +254,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	})
 
 	if !c.SingleNode && !slices.Contains(c.DisableComponents, constant.ControlAPIComponentName) {
-		c.nodeComponents.Add(ctx, &controller.K0SControlAPI{
-			ConfigPath: c.CfgFile,
-			K0sVars:    c.K0sVars,
-		})
+		c.nodeComponents.Add(ctx, &controller.K0SControlAPI{K0sVars: c.K0sVars})
 	}
 
 	if !slices.Contains(c.DisableComponents, constant.CsrApproverComponentName) {
@@ -269,14 +276,15 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	c.nodeComponents.Add(ctx, &status.Status{
 		Prober: prober.DefaultProber,
 		StatusInformation: &status.K0sStatus{
-			Pid:           os.Getpid(),
-			Role:          "controller",
-			Args:          os.Args,
-			Version:       build.Version,
-			Workloads:     c.SingleNode || c.EnableWorker,
-			SingleNode:    c.SingleNode,
-			DynamicConfig: c.EnableDynamicConfig,
-			K0sVars:       c.K0sVars,
+			Pid:             os.Getpid(),
+			Role:            "controller",
+			Args:            os.Args,
+			Version:         build.Version,
+			Workloads:       c.SingleNode || c.EnableWorker,
+			SingleNode:      c.SingleNode,
+			DynamicConfig:   c.EnableDynamicConfig,
+			K0sVars:         c.K0sVars,
+			BootstrapConfig: bootstrapConfig,
 		},
 		Socket:       c.StatusSocket,
 		ConfigSource: configSource,
@@ -336,6 +344,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 		adminClientFactory,
 		configSource,
 		initialConfig,
+		bootstrapConfig,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to initialize cluster-config reconciler: %w", err)
@@ -388,7 +397,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 	}
 
 	if !slices.Contains(c.DisableComponents, constant.CoreDNSComponentname) {
-		coreDNS, err := controller.NewCoreDNS(c.K0sVars, adminClientFactory, bootstrapConfig)
+		coreDNS, err := controller.NewCoreDNS(c.K0sVars, adminClientFactory, bootstrapConfig.Spec.Network)
 		if err != nil {
 			return fmt.Errorf("failed to create CoreDNS reconciler: %w", err)
 		}
@@ -454,7 +463,7 @@ func (c *controllerCommand) start(ctx context.Context) error {
 			LogLevel:          logLevels[constant.KonnectivityServerComponentName],
 			K0sVars:           c.K0sVars,
 			KubeClientFactory: adminClientFactory,
-			NodeConfig:        bootstrapConfig,
+			APISpec:           bootstrapConfig.Spec.API,
 			EventEmitter:      prober.NewEventEmitter(),
 		})
 	}

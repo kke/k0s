@@ -86,6 +86,7 @@ func (k *KubeletConfig) Start(_ context.Context) error {
 // Reconcile detects changes in configuration and applies them to the component
 func (k *KubeletConfig) Reconcile(ctx context.Context, clusterSpec *v1beta1.ClusterConfig) error {
 	k.log.Debug("reconcile method called for: KubeletConfig")
+
 	// Check if we actually need to reconcile anything
 	defaultProfilesExist, err := k.defaultProfilesExist(ctx)
 	if err != nil {
@@ -130,10 +131,10 @@ func (k *KubeletConfig) createProfiles(clusterSpec *v1beta1.ClusterConfig) (*byt
 		return nil, fmt.Errorf("failed to get DNS address for kubelet config: %v", err)
 	}
 	manifest := bytes.NewBuffer([]byte{})
-	defaultProfile := getDefaultProfile(dnsAddress, clusterSpec.Spec.Network.ClusterDomain)
+	defaultProfile := getDefaultProfile(dnsAddress, k.nodeConfig.Spec.Network.ClusterDomain)
 	defaultProfile["cgroupsPerQOS"] = true
 
-	winDefaultProfile := getDefaultProfile(dnsAddress, clusterSpec.Spec.Network.ClusterDomain)
+	winDefaultProfile := getDefaultProfile(dnsAddress, k.nodeConfig.Spec.Network.ClusterDomain)
 	winDefaultProfile["cgroupsPerQOS"] = false
 
 	if err := k.writeConfigMapWithProfile(manifest, "default", defaultProfile); err != nil {
@@ -146,25 +147,28 @@ func (k *KubeletConfig) createProfiles(clusterSpec *v1beta1.ClusterConfig) (*byt
 		formatProfileName("default"),
 		formatProfileName("default-windows"),
 	}
-	for _, profile := range clusterSpec.Spec.WorkerProfiles {
-		profileConfig := getDefaultProfile(dnsAddress, clusterSpec.Spec.Network.ClusterDomain)
 
-		var workerValues unstructuredYamlObject
-		err := json.Unmarshal(profile.Config, &workerValues)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decode worker profile values: %v", err)
-		}
-		merged, err := mergeProfiles(&profileConfig, workerValues)
-		if err != nil {
-			return nil, fmt.Errorf("can't merge profile `%s` with default profile: %v", profile.Name, err)
-		}
+	if clusterSpec != nil {
+		for _, profile := range clusterSpec.Spec.WorkerProfiles {
+			profileConfig := getDefaultProfile(dnsAddress, k.nodeConfig.Spec.Network.ClusterDomain)
 
-		if err := k.writeConfigMapWithProfile(manifest,
-			profile.Name,
-			merged); err != nil {
-			return nil, fmt.Errorf("can't write manifest for profile config map: %v", err)
+			var workerValues unstructuredYamlObject
+			err := json.Unmarshal(profile.Config, &workerValues)
+			if err != nil {
+				return nil, fmt.Errorf("failed to decode worker profile values: %v", err)
+			}
+			merged, err := mergeProfiles(&profileConfig, workerValues)
+			if err != nil {
+				return nil, fmt.Errorf("can't merge profile `%s` with default profile: %v", profile.Name, err)
+			}
+
+			if err := k.writeConfigMapWithProfile(manifest,
+				profile.Name,
+				merged); err != nil {
+				return nil, fmt.Errorf("can't write manifest for profile config map: %v", err)
+			}
+			configMapNames = append(configMapNames, formatProfileName(profile.Name))
 		}
-		configMapNames = append(configMapNames, formatProfileName(profile.Name))
 	}
 	if err := k.writeRbacRoleBindings(manifest, configMapNames); err != nil {
 		return nil, fmt.Errorf("can't write manifest for rbac bindings: %v", err)

@@ -465,6 +465,16 @@ func (o *CLIOptions) InitialConfig() *v1beta1.ClusterConfig {
 	}
 	if o.initialConfig == nil {
 		o.initialConfig = o.getConfigFile()
+
+		// todo: these do not belong here, replicated from the "ClientConfigLoadingRules" ParseRuntimeConfig
+		storage := o.initialConfig.Spec.Storage
+		if storage.Type == v1beta1.KineStorageType && storage.Kine == nil {
+			storage.Kine = v1beta1.DefaultKineConfig(o.K0sVars.DataDir)
+		}
+
+		if o.initialConfig.Spec.Install == nil {
+			o.initialConfig.Spec.Install = v1beta1.DefaultInstallSpec()
+		}
 	}
 	return o.initialConfig
 }
@@ -480,11 +490,11 @@ func (o *CLIOptions) BootstrapConfig() *v1beta1.ClusterConfig {
 	return o.bootstrapConfig
 }
 
-// RuntimeConfig returns config from the status socket
+// RuntimeConfig returns the bootstrap config from the status socket.
 func (o *CLIOptions) RuntimeConfig(ctx context.Context) (*v1beta1.ClusterConfig, error) {
 	statusInfo, err := status.GetStatusInfo(ctx, o.StatusSocket)
 	if err != nil {
 		return nil, fmt.Errorf("get runtime config: get status: %w", err)
 	}
-	return statusInfo.ClusterConfig, nil
+	return statusInfo.BootstrapConfig, nil
 }

@@ -216,6 +216,18 @@ func (c *Calico) Stop() error {
 // Reconcile detects changes in configuration and applies them to the component
 func (c *Calico) Reconcile(_ context.Context, cfg *v1beta1.ClusterConfig) error {
 	c.log.Debug("reconcile method called for: Calico")
+
+	if cfg == nil {
+		// Spec.Network.Calico is in clusterwide config, PodCIDR is in bootstrap config
+		c.log.Debug("cluster config not yet available, skipping reconcile")
+		return nil
+	}
+
+	if cfg.Spec.Network.Calico == nil {
+		c.log.Debug("cluster config does not define calico, skipping reconcile")
+		return nil
+	}
+
 	if cfg.Spec.Network.Provider != "calico" {
 		return nil
 	}

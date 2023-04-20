@@ -85,6 +85,14 @@ func (a *Manager) Start(_ context.Context) error { return nil }
 // Reconcile detects changes in configuration and applies them to the component
 func (a *Manager) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
 	logger := logrus.WithField("component", "kube-controller-manager")
+
+	if clusterConfig == nil {
+		// BuildPodCIDR requires ServiceCIDR (clusterwide config) + PodCIDR (bootstrap config)
+		// DualStack is a clusterwide config
+		logger.Info("clusterconfig not yet available, skipping reconcile")
+		return nil
+	}
+
 	logger.Info("Starting reconcile")
 	ccmAuthConf := filepath.Join(a.K0sVars.CertRootDir, "ccm.conf")
 	args := stringmap.StringMap{

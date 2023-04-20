@@ -121,6 +121,16 @@ func (m *Metrics) Stop() error {
 func (m *Metrics) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
 	m.log.Debug("reconcile method called for: Metrics")
 
+	if clusterConfig == nil {
+		m.log.Debug("cluster config is not yet available, skipping reconcile")
+		return nil
+	}
+
+	if clusterConfig.Spec.Images == nil {
+		m.log.Debug("cluster config images is nil, skipping reconcile")
+		return nil
+	}
+
 	if m.clusterConfig == nil || clusterConfig.Spec.Images.PushGateway.URI() != m.clusterConfig.Spec.Images.PushGateway.URI() {
 		tw := templatewriter.TemplateWriter{
 			Name:     "pushgateway-with-ttl",

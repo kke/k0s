@@ -28,7 +28,6 @@ import (
 
 // K0SControlAPI implements the k0s control API component
 type K0SControlAPI struct {
-	ConfigPath string
 	K0sVars    constant.CfgVars
 	supervisor supervisor.Supervisor
 }
@@ -49,6 +48,7 @@ func (m *K0SControlAPI) Start(_ context.Context) error {
 	if err != nil {
 		return err
 	}
+
 	m.supervisor = supervisor.Supervisor{
 		Name:    "k0s-control-api",
 		BinPath: selfExe,

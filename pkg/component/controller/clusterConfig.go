@@ -22,6 +22,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/imdario/mergo"
 	k0sclient "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/component/controller/clusterconfig"
@@ -43,15 +44,16 @@ type ClusterConfigReconciler struct {
 	ComponentManager  *manager.Manager
 	KubeClientFactory kubeutil.ClientFactoryInterface
 
-	configClient  k0sclient.ClusterConfigInterface
-	leaderElector leaderelector.Interface
-	log           *logrus.Entry
-	configSource  clusterconfig.ConfigSource
-	initialConfig *v1beta1.ClusterConfig
+	configClient    k0sclient.ClusterConfigInterface
+	leaderElector   leaderelector.Interface
+	log             *logrus.Entry
+	configSource    clusterconfig.ConfigSource
+	initialConfig   *v1beta1.ClusterConfig
+	bootstrapConfig *v1beta1.ClusterConfig
 }
 
 // NewClusterConfigReconciler creates a new clusterConfig reconciler
-func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars constant.CfgVars, mgr *manager.Manager, kubeClientFactory kubeutil.ClientFactoryInterface, configSource clusterconfig.ConfigSource, initialConfig *v1beta1.ClusterConfig) (*ClusterConfigReconciler, error) {
+func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars constant.CfgVars, mgr *manager.Manager, kubeClientFactory kubeutil.ClientFactoryInterface, configSource clusterconfig.ConfigSource, initialConfig *v1beta1.ClusterConfig, bootstrapConfig *v1beta1.ClusterConfig) (*ClusterConfigReconciler, error) {
 	configClient, err := kubeClientFactory.GetConfigClient()
 	if err != nil {
 		return nil, err
@@ -65,6 +67,7 @@ func NewClusterConfigReconciler(leaderElector leaderelector.Interface, k0sVars c
 		configSource:      configSource,
 		configClient:      configClient,
 		initialConfig:     initialConfig,
+		bootstrapConfig:   bootstrapConfig,
 	}, nil
 }
 
@@ -112,6 +115,9 @@ func (r *ClusterConfigReconciler) Start(ctx context.Context) error {
 					cfg = cfg.CRValidator()
 					r.reportStatus(ctx, cfg, fmt.Errorf("config source closed channel"))
 					return
+				}
+				if err := mergo.Merge(cfg, r.bootstrapConfig); err != nil {
+					r.log.WithError(err).Error("failed to merge bootstrap config")
 				}
 				err := cfg.ValidationError()
 				if err == nil {
@@ -199,9 +205,6 @@ func (r *ClusterConfigReconciler) clusterConfigExists(ctx context.Context) error
 }
 
 func (r *ClusterConfigReconciler) createClusterConfig(ctx context.Context) error {
-	if r.initialConfig == nil {
-		return fmt.Errorf("missing initial config for cluster config creation")
-	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 	_, err := r.configClient.Create(ctx, r.initialConfig, metav1.CreateOptions{})

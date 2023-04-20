@@ -324,6 +324,10 @@ func (r *Reconciler) runReconcileLoop(ctx context.Context, updates <-chan update
 
 // Reconcile implements [manager.Reconciler].
 func (r *Reconciler) Reconcile(ctx context.Context, cluster *v1beta1.ClusterConfig) error {
+	if cluster == nil {
+		r.log.Debug("cluster config not yet available, skipping reconcile")
+		return nil
+	}
 	updates, stopped, err := func() (chan<- updateFunc, <-chan struct{}, error) {
 		r.mu.Lock()
 		defer r.mu.Unlock()

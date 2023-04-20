@@ -62,6 +62,7 @@ func (c *command) setup(role string, args []string, installFlags *installFlags) 
 	}
 
 	if role == "controller" {
+		// todo:xxx boostrapconfig
 		if err := install.CreateControllerUsers(c.BootstrapConfig(), c.K0sVars); err != nil {
 			return fmt.Errorf("failed to create controller users: %v", err)
 		}

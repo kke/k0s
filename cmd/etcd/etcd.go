@@ -27,6 +27,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type etcdKey struct{}
+
 func NewEtcdCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:              "etcd",
@@ -57,6 +59,8 @@ func NewEtcdCmd() *cobra.Command {
 				return fmt.Errorf("wrong storage type: %s", storage.Type)
 			}
 
+			cmd.SetContext(context.WithValue(ctx, etcdKey{}, cfg.Spec.Storage.Etcd))
+
 			return nil
 		},
 	}
@@ -64,4 +68,12 @@ func NewEtcdCmd() *cobra.Command {
 	cmd.AddCommand(etcdListCmd())
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
 	return cmd
+}
+
+func etcdConfigFromContext(ctx context.Context) (*v1beta1.EtcdConfig, error) {
+	storage, ok := ctx.Value(etcdKey{}).(*v1beta1.EtcdConfig)
+	if !ok {
+		return nil, fmt.Errorf("failed to get storage spec from context")
+	}
+	return storage, nil
 }

@@ -17,10 +17,8 @@ limitations under the License.
 package etcd
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/etcd"
@@ -34,21 +32,17 @@ func etcdListCmd() *cobra.Command {
 		Short: "Returns etcd cluster members list",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			c := config.GetCmdOpts(cmd)
-			ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
-			defer cancel()
 
-			cfg, err := c.RuntimeConfig(ctx)
+			etcdCfg, err := etcdConfigFromContext(cmd.Context())
 			if err != nil {
 				return err
 			}
 
-			ctx = cmd.Context()
-
-			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, cfg.Spec.Storage.Etcd)
+			etcdClient, err := etcd.NewClient(c.K0sVars.CertRootDir, c.K0sVars.EtcdCertDir, etcdCfg)
 			if err != nil {
 				return fmt.Errorf("can't list etcd cluster members: %v", err)
 			}
-			members, err := etcdClient.ListMembers(ctx)
+			members, err := etcdClient.ListMembers(cmd.Context())
 			if err != nil {
 				return fmt.Errorf("can't list etcd cluster members: %v", err)
 			}

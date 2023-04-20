@@ -70,6 +70,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 				return errors.New("failed to get k0s status: status info is nil")
 			}
 
+			// todo:xxx bootstrapconfig
 			cfg := statusInfo.ClusterConfig
 
 			if cfg == nil {

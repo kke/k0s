@@ -18,11 +18,13 @@ package kubeconfig
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"html/template"
 	"os"
 	"path"
+	"time"
 
 	"github.com/k0sproject/k0s/pkg/certificate"
 	"github.com/k0sproject/k0s/pkg/config"
@@ -72,7 +74,16 @@ Note: A certificate once signed cannot be revoked for a particular user`,
 			}
 			username := args[0]
 			c := config.GetCmdOpts(cmd)
-			clusterAPIURL := c.BootstrapConfig().Spec.API.APIAddressURL()
+
+			ctx, cancel := context.WithTimeout(cmd.Context(), 1*time.Minute)
+			defer cancel()
+
+			cfg, err := c.RuntimeConfig(ctx)
+			if err != nil {
+				return err
+			}
+
+			clusterAPIURL := cfg.Spec.API.APIAddressURL()
 
 			caCert, err := os.ReadFile(path.Join(c.K0sVars.CertRootDir, "ca.crt"))
 			if err != nil {

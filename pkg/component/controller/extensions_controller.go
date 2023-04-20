@@ -75,6 +75,16 @@ const (
 
 // Run runs the extensions controller
 func (ec *ExtensionsController) Reconcile(ctx context.Context, clusterConfig *k0sAPI.ClusterConfig) error {
+	if clusterConfig == nil {
+		ec.L.Debug("cluster config is not yet available, skipping extensions reconcilation")
+		return nil
+	}
+
+	if clusterConfig.Spec.Extensions == nil {
+		ec.L.Debug("cluster config does not define extensions, skipping extensions reconcilation")
+		return nil
+	}
+
 	ec.L.Info("Extensions reconcilation started")
 	defer ec.L.Info("Extensions reconcilation finished")
 

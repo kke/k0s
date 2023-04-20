@@ -20,7 +20,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/imdario/mergo"
 	k0sclient "github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/clientset/typed/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
 	"github.com/k0sproject/k0s/pkg/constant"
@@ -35,20 +34,18 @@ var _ ConfigSource = (*apiConfigSource)(nil)
 type apiConfigSource struct {
 	configPubSub
 
-	bootstrapConfig *v1beta1.ClusterConfig
-	clientFactory   kubeutil.ClientFactoryInterface
-	configClient    k0sclient.ClusterConfigInterface
+	clientFactory kubeutil.ClientFactoryInterface
+	configClient  k0sclient.ClusterConfigInterface
 }
 
-func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface, bootstrapConfig *v1beta1.ClusterConfig) (ConfigSource, error) {
+func NewAPIConfigSource(kubeClientFactory kubeutil.ClientFactoryInterface) (ConfigSource, error) {
 	configClient, err := kubeClientFactory.GetConfigClient()
 	if err != nil {
 		return nil, err
 	}
 	a := &apiConfigSource{
-		bootstrapConfig: bootstrapConfig,
-		clientFactory:   kubeClientFactory,
-		configClient:    configClient,
+		clientFactory: kubeClientFactory,
+		configClient:  configClient,
 	}
 	return a, nil
 }
@@ -86,10 +83,8 @@ func (a *apiConfigSource) Start(ctx context.Context) {
 			if lastObservedVersion != cfg.ResourceVersion {
 				log.Debugf("Cluster configuration update to resource version %q", cfg.ResourceVersion)
 				lastObservedVersion = cfg.ResourceVersion
-				if err := mergo.Merge(cfg, a.bootstrapConfig); err == nil {
-					a.updateConfig(cfg)
-					a.notifySubscribers(ctx)
-				}
+				a.updateConfig(cfg)
+				a.notifySubscribers(ctx)
 			}
 			return false, nil
 		})

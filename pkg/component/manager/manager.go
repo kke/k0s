@@ -147,6 +147,10 @@ func (r ReconcileError) Error() string {
 
 // Reconcile reconciles all managed components
 func (m *Manager) Reconcile(ctx context.Context, cfg *v1beta1.ClusterConfig) error {
+	if cfg == nil {
+		return fmt.Errorf("reconcile started with nil config")
+	}
+
 	errors := make([]error, 0)
 	var ret error
 	logrus.Infof("starting component reconciling for %d components", len(m.Components))

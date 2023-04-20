@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/imdario/mergo"
 	"github.com/k0sproject/k0s/internal/pkg/dir"
 
 	"github.com/k0sproject/k0s/pkg/autopilot/client"
@@ -132,7 +133,9 @@ func (s *Status) Start(ctx context.Context) error {
 				if cfg == nil || !ok {
 					return
 				}
-				s.StatusInformation.ClusterConfig = cfg
+				if err := mergo.Merge(cfg, s.StatusInformation.BootstrapConfig); err == nil {
+					s.StatusInformation.ClusterConfig = cfg
+				}
 			}
 		}
 	}()

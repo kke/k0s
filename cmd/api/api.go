@@ -73,14 +73,14 @@ func NewAPICmd() *cobra.Command {
 			return config.CallParentPersistentPreRun(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return (&command{CLIOptions: config.GetCmdOpts(cmd)}).start()
+			return (&command{CLIOptions: config.GetCmdOpts(cmd)}).start(cmd.Context())
 		},
 	}
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
 	return cmd
 }
 
-func (c *command) start() (err error) {
+func (c *command) start(ctx context.Context) (err error) {
 	// Single kube client for whole lifetime of the API
 	c.client, err = kubeutil.NewClientFromFile(c.K0sVars.AdminKubeConfigPath)
 	if err != nil {
@@ -90,7 +90,7 @@ func (c *command) start() (err error) {
 	prefix := "/v1beta1"
 	mux := http.NewServeMux()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 
 	cfg, err := c.RuntimeConfig(ctx)
@@ -99,7 +99,6 @@ func (c *command) start() (err error) {
 	}
 
 	c.cfg = cfg
-
 	storage := cfg.Spec.Storage
 
 	if storage.Type == v1beta1.EtcdStorageType && !storage.Etcd.IsExternal() {

@@ -42,45 +42,22 @@ With the controller subcommand you can setup a single node cluster by running:
 
 	k0s install controller --single
 	`,
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts(cmd)
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c := command{config.GetCmdOpts(cmd)}
+
 			if err := c.InitialConfig().ValidationError(); err != nil {
 				return err
 			}
 
 			// config from stdin needs to be stored in a file
-			if c.CfgFile == "-" {
-				if file.Exists(constant.K0sConfigPathDefault) {
-					return fmt.Errorf("config file %s already exists, please remove it first", constant.K0sConfigPathDefault)
-				}
-				logrus.Infof("configuration from stdin will be installed to %s", constant.K0sConfigPathDefault)
-				if err := dir.Init(filepath.Dir(constant.K0sConfigPathDefault), 0640); err != nil {
-					return err
-				}
-				cfgContent, err := yaml.Marshal(c.InitialConfig())
-				if err != nil {
-					return err
-				}
-
-				if err := os.WriteFile(constant.K0sConfigPathDefault, cfgContent, 0640); err != nil {
-					return err
-				}
-
-				config.CfgFile = constant.K0sConfigPathDefault
-				// cmdFlagsToArgs() will use the config path from the flag
-				if err := cmd.Flags().Set("config", constant.K0sConfigPathDefault); err != nil {
-					return err
-				}
+			if err := c.installStdinConfig(cmd); err != nil {
+				return err
 			}
-
-			return nil
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			c := command{config.GetCmdOpts(cmd)}
 
 			if err := c.convertFileParamsToAbsolute(); err != nil {
 				return err
 			}
+
 			flagsAndVals := []string{"controller"}
 			flagsAndVals = append(flagsAndVals, cmdFlagsToArgs(cmd)...)
 			if err := c.setup("controller", flagsAndVals, installFlags); err != nil {
@@ -94,4 +71,38 @@ With the controller subcommand you can setup a single node cluster by running:
 	cmd.Flags().AddFlagSet(config.GetControllerFlags())
 	cmd.Flags().AddFlagSet(config.GetWorkerFlags())
 	return cmd
+}
+
+func (c *command) installStdinConfig(cmd *cobra.Command) error {
+	if c.CfgFile != "-" {
+		return nil
+	}
+
+	installCfgPath := constant.K0sConfigPathDefault
+	if file.Exists(installCfgPath) {
+		return fmt.Errorf("config file %s already exists, please remove it first", installCfgPath)
+	}
+	logrus.Infof("configuration from stdin will be installed to %s", installCfgPath)
+	if err := dir.Init(filepath.Dir(installCfgPath), 0750); err != nil {
+		return err
+	}
+
+	cfgContent, err := yaml.Marshal(c.InitialConfig())
+	if err != nil {
+		return err
+	}
+
+	if err := os.WriteFile(installCfgPath, cfgContent, 0660); err != nil {
+		return err
+	}
+
+	config.CfgFile = installCfgPath
+	c.CfgFile = installCfgPath
+
+	// cmdFlagsToArgs() will use the config path from the flag
+	if err := cmd.Flags().Set("config", installCfgPath); err != nil {
+		return err
+	}
+
+	return nil
 }

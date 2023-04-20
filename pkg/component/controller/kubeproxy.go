@@ -68,9 +68,16 @@ func (k *KubeProxy) Start(_ context.Context) error { return nil }
 
 // Reconcile detects changes in configuration and applies them to the component
 func (k *KubeProxy) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
-	if clusterConfig.Spec.Network.KubeProxy.Disabled {
+	if clusterConfig == nil {
+		// Spec.Network.Calico is in clusterwide config, PodCIDR is in bootstrap config
+		k.log.Debug("cluster config not yet available, skipping reconcile")
+		return nil
+	}
+
+	if clusterConfig.Spec.Network.KubeProxy == nil || clusterConfig.Spec.Network.KubeProxy.Disabled {
 		return os.RemoveAll(k.manifestDir)
 	}
+
 	err := dir.Init(k.manifestDir, constant.ManifestsDirMode)
 	if err != nil {
 		return err

@@ -96,6 +96,17 @@ func (c *Component) Stop() error {
 // Reconcile detects changes in configuration and applies them to the component
 func (c *Component) Reconcile(ctx context.Context, clusterCfg *v1beta1.ClusterConfig) error {
 	logrus.Debug("reconcile method called for: Telemetry")
+
+	if clusterCfg == nil {
+		logrus.WithField("component", "telemetry").Debug("cluster config is not yet available, skipping reconcile")
+		return nil
+	}
+
+	if clusterCfg.Spec.Telemetry == nil {
+		logrus.WithField("component", "telemetry").Debug("cluster config does not specify telemetry, skipping reconcile")
+		return nil
+	}
+
 	if !clusterCfg.Spec.Telemetry.Enabled {
 		return c.Stop()
 	}
