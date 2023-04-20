@@ -93,6 +93,11 @@ func (a *Manager) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterCon
 		return nil
 	}
 
+	if clusterConfig.Spec.ControllerManager != nil {
+		logger.Info("clusterconfig does not define ControllerManager, skipping reconcile")
+		return nil
+	}
+
 	logger.Info("Starting reconcile")
 	ccmAuthConf := filepath.Join(a.K0sVars.CertRootDir, "ccm.conf")
 	args := stringmap.StringMap{
@@ -125,6 +130,7 @@ func (a *Manager) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterCon
 	} else {
 		args["node-cidr-mask-size"] = "24"
 	}
+
 	for name, value := range clusterConfig.Spec.ControllerManager.ExtraArgs {
 		if _, ok := args[name]; ok {
 			logger.Warnf("overriding kube-controller-manager flag with user provided value: %s", name)
