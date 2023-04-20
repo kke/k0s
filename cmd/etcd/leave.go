@@ -40,7 +40,7 @@ func etcdLeaveCmd() *cobra.Command {
 			ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
 			defer cancel()
 
-			etcdCfg, err := etcdConfigFromContext(cmd.Context())
+			etcdCfg, err := etcdConfigFromContext(ctx)
 			if err != nil {
 				return err
 			}
