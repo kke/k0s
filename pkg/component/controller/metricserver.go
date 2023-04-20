@@ -332,17 +332,18 @@ func (m *MetricServer) Stop() error {
 
 // Reconcile detects changes in configuration and applies them to the component
 func (m *MetricServer) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
+	logger := logrus.WithField("component", "metricServer")
 	if clusterConfig == nil {
-		m.log.Debug("cluster config not yet available, skipping reconcile")
+		logger.Debug("cluster config not yet available, skipping reconcile")
 		return nil
 	}
 
 	if clusterConfig.Spec.Images == nil {
-		m.log.Debug("cluster config does not define images, skipping reconcile")
+		logger.Debug("cluster config does not define images, skipping reconcile")
 		return nil
 	}
 
-	logrus.Debug("reconcile method called for: MetricServer")
+	logger.Debug("reconcile method called for: MetricServer")
 	// We just store the last known config, the main reconciler ticker will reconcile config based on number of nodes etc.
 	m.clusterConfig = clusterConfig
 	return nil

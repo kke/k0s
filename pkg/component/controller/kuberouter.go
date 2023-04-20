@@ -95,15 +95,16 @@ func getHairpinConfig(cfg *kubeRouterConfig, krc *v1beta1.KubeRouter) {
 
 // Reconcile detects changes in configuration and applies them to the component
 func (k *KubeRouter) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
-	logrus.Debug("reconcile method called for: KubeRouter")
+	logger := logrus.WithField("component", "kube-router")
+	logger.Debug("reconcile method called for: KubeRouter")
 
 	if clusterConfig == nil {
-		k.log.Debug("cluster config not yet available, skipping reconcile")
+		logger.Debug("cluster config not yet available, skipping reconcile")
 		return nil
 	}
 
 	if clusterConfig.Spec.Network.KubeRouter == nil {
-		k.log.Debug("cluster config does not specify kube-router config, skipping reconcile")
+		logger.Debug("cluster config does not specify kube-router config, skipping reconcile")
 		return nil
 	}
 

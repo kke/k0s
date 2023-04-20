@@ -215,16 +215,17 @@ func (c *Calico) Stop() error {
 
 // Reconcile detects changes in configuration and applies them to the component
 func (c *Calico) Reconcile(_ context.Context, cfg *v1beta1.ClusterConfig) error {
-	c.log.Debug("reconcile method called for: Calico")
+	logger := logrus.WithField("component", "calico")
+	logger.Debug("reconcile method called for: Calico")
 
 	if cfg == nil {
 		// Spec.Network.Calico is in clusterwide config, PodCIDR is in bootstrap config
-		c.log.Debug("cluster config not yet available, skipping reconcile")
+		logger.Debug("cluster config not yet available, skipping reconcile")
 		return nil
 	}
 
 	if cfg.Spec.Network.Calico == nil {
-		c.log.Debug("cluster config does not define calico, skipping reconcile")
+		logger.Debug("cluster config does not define calico, skipping reconcile")
 		return nil
 	}
 
@@ -239,7 +240,7 @@ func (c *Calico) Reconcile(_ context.Context, cfg *v1beta1.ClusterConfig) error 
 
 	calicoCRDOnce.Do(func() {
 		if err := c.dumpCRDs(); err != nil {
-			c.log.Errorf("error dumping Calico CRDs: %v", err)
+			logger.Errorf("error dumping Calico CRDs: %v", err)
 		}
 	})
 	newConfig, err := c.getConfig(cfg)
@@ -248,7 +249,7 @@ func (c *Calico) Reconcile(_ context.Context, cfg *v1beta1.ClusterConfig) error 
 	}
 	if !reflect.DeepEqual(newConfig, c.prevConfig) {
 		if err := c.processConfigChanges(newConfig); err != nil {
-			c.log.Warnf("failed to process config changes: %v", err)
+			logger.Warnf("failed to process config changes: %v", err)
 		}
 		c.prevConfig = newConfig
 	}

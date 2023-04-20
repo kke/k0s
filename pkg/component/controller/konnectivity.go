@@ -110,13 +110,14 @@ func (k *Konnectivity) Start(ctx context.Context) error {
 
 // Reconcile detects changes in configuration and applies them to the component
 func (k *Konnectivity) Reconcile(ctx context.Context, clusterCfg *v1beta1.ClusterConfig) error {
+	logger := logrus.WithFields(logrus.Fields{"component": "konnectivity"})
 	if clusterCfg == nil {
-		k.log.Debug("cluster config is not yet available, skipping reconcile")
+		logger.Debug("cluster config is not yet available, skipping reconcile")
 		return nil
 	}
 
 	if clusterCfg.Spec.Konnectivity == nil {
-		k.log.Debug("cluster config does not define konnectivity, skipping reconcile")
+		logger.Debug("cluster config does not define konnectivity, skipping reconcile")
 		return nil
 	}
 

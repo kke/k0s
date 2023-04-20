@@ -75,18 +75,19 @@ const (
 
 // Run runs the extensions controller
 func (ec *ExtensionsController) Reconcile(ctx context.Context, clusterConfig *k0sAPI.ClusterConfig) error {
+	logger := logrus.WithField("component", "extensions_controller")
 	if clusterConfig == nil {
-		ec.L.Debug("cluster config is not yet available, skipping extensions reconcilation")
+		logger.Debug("cluster config is not yet available, skipping extensions reconcilation")
 		return nil
 	}
 
 	if clusterConfig.Spec.Extensions == nil {
-		ec.L.Debug("cluster config does not define extensions, skipping extensions reconcilation")
+		logger.Debug("cluster config does not define extensions, skipping extensions reconcilation")
 		return nil
 	}
 
-	ec.L.Info("Extensions reconcilation started")
-	defer ec.L.Info("Extensions reconcilation finished")
+	logger.Info("Extensions reconcilation started")
+	defer logger.Info("Extensions reconcilation finished")
 
 	helmSettings := clusterConfig.Spec.Extensions.Helm
 	var err error
@@ -94,7 +95,7 @@ func (ec *ExtensionsController) Reconcile(ctx context.Context, clusterConfig *k0
 	case k0sAPI.OpenEBSLocal:
 		helmSettings, err = addOpenEBSHelmExtension(helmSettings, clusterConfig.Spec.Extensions.Storage)
 		if err != nil {
-			ec.L.Errorf("can't add openebs helm extension: %v", err)
+			logger.Errorf("can't add openebs helm extension: %v", err)
 		}
 	default:
 	}

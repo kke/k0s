@@ -68,9 +68,10 @@ func (k *KubeProxy) Start(_ context.Context) error { return nil }
 
 // Reconcile detects changes in configuration and applies them to the component
 func (k *KubeProxy) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
+	logger := logrus.WithField("component", "kubeproxy")
 	if clusterConfig == nil {
 		// Spec.Network.Calico is in clusterwide config, PodCIDR is in bootstrap config
-		k.log.Debug("cluster config not yet available, skipping reconcile")
+		logger.Debug("cluster config not yet available, skipping reconcile")
 		return nil
 	}
 
@@ -87,7 +88,7 @@ func (k *KubeProxy) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterC
 		return err
 	}
 	if reflect.DeepEqual(cfg, k.previousConfig) {
-		k.log.Infof("current cfg matches existing, not gonna do anything")
+		logger.Infof("current cfg matches existing, not gonna do anything")
 		return nil
 	}
 	tw := templatewriter.TemplateWriter{

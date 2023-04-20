@@ -350,14 +350,15 @@ func (c *CoreDNS) Stop() error {
 
 // Reconcile detects changes in configuration and applies them to the component
 func (c *CoreDNS) Reconcile(ctx context.Context, clusterConfig *v1beta1.ClusterConfig) error {
-	logrus.Debug("reconcile method called for: CoreDNS")
+	logger := logrus.WithField("component", "coredns")
+	logger.Debug("reconcile method called for: CoreDNS")
 	if !c.running {
-		c.log.Debug("component is not running, skipping reconcile")
+		logger.Debug("component is not running, skipping reconcile")
 		return nil
 	}
 
 	if clusterConfig == nil {
-		c.log.Debug("cluster config is not yet available, skipping reconcile")
+		logger.Debug("cluster config is not yet available, skipping reconcile")
 		return nil
 	}
 
@@ -366,7 +367,7 @@ func (c *CoreDNS) Reconcile(ctx context.Context, clusterConfig *v1beta1.ClusterC
 		return fmt.Errorf("error calculating coredns configs: %v. will retry", err)
 	}
 	if reflect.DeepEqual(cfg, c.previousConfig) {
-		c.log.Debug("current cfg matches existing, not going to do anything")
+		logger.Debug("current cfg matches existing, not going to do anything")
 		return nil
 	}
 	tw := templatewriter.TemplateWriter{

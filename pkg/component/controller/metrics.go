@@ -119,15 +119,15 @@ func (m *Metrics) Stop() error {
 
 // Reconcile detects changes in configuration and applies them to the component
 func (m *Metrics) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterConfig) error {
-	m.log.Debug("reconcile method called for: Metrics")
+	logrus.WithField("component", "metrics").Debug("reconcile method called for: Metrics")
 
 	if clusterConfig == nil {
-		m.log.Debug("cluster config is not yet available, skipping reconcile")
+		logrus.WithField("component", "metrics").Debug("cluster config is not yet available, skipping reconcile")
 		return nil
 	}
 
 	if clusterConfig.Spec.Images == nil {
-		m.log.Debug("cluster config images is nil, skipping reconcile")
+		logrus.WithField("component", "metrics").Debug("cluster config images is nil, skipping reconcile")
 		return nil
 	}
 

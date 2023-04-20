@@ -85,7 +85,8 @@ func (k *KubeletConfig) Start(_ context.Context) error {
 
 // Reconcile detects changes in configuration and applies them to the component
 func (k *KubeletConfig) Reconcile(ctx context.Context, clusterSpec *v1beta1.ClusterConfig) error {
-	k.log.Debug("reconcile method called for: KubeletConfig")
+	logger := logrus.WithField("component", "kubeletconfig")
+	logger.Debug("reconcile method called for: KubeletConfig")
 
 	// Check if we actually need to reconcile anything
 	defaultProfilesExist, err := k.defaultProfilesExist(ctx)
@@ -93,7 +94,7 @@ func (k *KubeletConfig) Reconcile(ctx context.Context, clusterSpec *v1beta1.Clus
 		return err
 	}
 	if defaultProfilesExist && reflect.DeepEqual(k.previousProfiles, clusterSpec.Spec.WorkerProfiles) {
-		k.log.Debugf("default profiles exist and no change in user specified profiles, nothing to reconcile")
+		logger.Debugf("default profiles exist and no change in user specified profiles, nothing to reconcile")
 		return nil
 	}
 
