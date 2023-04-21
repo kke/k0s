@@ -57,7 +57,7 @@ check-conformance: bin/sonobuoy
 get-conformance-results: bin/sonobuoy
 	$(realpath bin/sonobuoy) retrieve
 
-TIMEOUT ?= 15m
+TIMEOUT ?= 5m
 
 check-ctr: __TIMEOUT=10m
 check-byocri: __TIMEOUT=5m
