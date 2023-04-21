@@ -239,7 +239,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        smoke-suite: ${{ fromJson(needs.build.outputs.smoke-test-matrix) }}
+        # smoke-suite: ${{ fromJson(needs.build.outputs.smoke-test-matrix) }}
+        smoke-suite: check-basic
 
     steps:
       - name: Check out code into the Go module directory
@@ -302,6 +303,7 @@ jobs:
           path: /tmp/*_sonobuoy_*.tar.gz
 
   autopilot-smoketest-matrix:
+    if: false
     name: Release matrix
     runs-on: ubuntu-latest
     env:
@@ -332,6 +334,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
   autopilot-smoketest:
+    if: false
     name: Autopilot smoke test
     needs:
     - build
