@@ -111,7 +111,8 @@ Init System: {{.SysInit}}
 {{- end}}
 {{- if .StubFile}}
 Service file: {{.StubFile}}
-{{- end}}`
+{{- end}}
+`
 
 func printStatus(w io.Writer, status *status.K0sStatus, output string) error {
 	switch output {
