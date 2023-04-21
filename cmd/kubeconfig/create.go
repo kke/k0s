@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/k0sproject/k0s/pkg/certificate"
+	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 
 	"github.com/spf13/cobra"
@@ -78,10 +79,13 @@ Note: A certificate once signed cannot be revoked for a particular user`,
 			ctx, cancel := context.WithTimeout(cmd.Context(), 1*time.Minute)
 			defer cancel()
 
-			cfg, err := c.RuntimeConfig(ctx)
+			statusInfo, err := status.GetStatusInfo(ctx, c.StatusSocket)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get k0s status: %w", err)
 			}
+
+			cfg := statusInfo.BootstrapConfig
+			c.K0sVars = statusInfo.K0sVars
 
 			clusterAPIURL := cfg.Spec.API.APIAddressURL()
 

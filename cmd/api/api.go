@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -33,6 +34,7 @@ import (
 	mw "github.com/k0sproject/k0s/internal/pkg/middleware"
 	"github.com/k0sproject/k0s/internal/pkg/templatewriter"
 	"github.com/k0sproject/k0s/pkg/apis/k0s.k0sproject.io/v1beta1"
+	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/constant"
 	"github.com/k0sproject/k0s/pkg/etcd"
@@ -93,13 +95,18 @@ func (c *command) start(ctx context.Context) (err error) {
 	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer cancel()
 
-	cfg, err := c.RuntimeConfig(ctx)
+	statusInfo, err := status.GetStatusInfo(ctx, c.StatusSocket)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get k0s status: %w", err)
+	}
+	if statusInfo == nil {
+		return errors.New("failed to get k0s status: status info is nil")
 	}
 
-	c.cfg = cfg
-	storage := cfg.Spec.Storage
+	c.cfg = statusInfo.BootstrapConfig
+	c.K0sVars = statusInfo.K0sVars
+
+	storage := c.cfg.Spec.Storage
 
 	if storage.Type == v1beta1.EtcdStorageType && !storage.Etcd.IsExternal() {
 		// Only mount the etcd handler if we're running on internal etcd storage
@@ -117,7 +124,7 @@ func (c *command) start(ctx context.Context) (err error) {
 
 	srv := &http.Server{
 		Handler: mux,
-		Addr:    fmt.Sprintf(":%d", cfg.Spec.API.K0sAPIPort),
+		Addr:    fmt.Sprintf(":%d", c.cfg.Spec.API.K0sAPIPort),
 		TLSConfig: &tls.Config{
 			MinVersion:   tls.VersionTLS12,
 			CipherSuites: constant.AllowedTLS12CipherSuiteIDs,
