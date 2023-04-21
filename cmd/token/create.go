@@ -71,7 +71,7 @@ k0s token create --role worker --expiry 10m  //sets expiration time to 10 minute
 			}
 
 			// todo:xxx bootstrapconfig
-			cfg := statusInfo.ClusterConfig
+			cfg := statusInfo.BootstrapConfig
 
 			if cfg == nil {
 				return fmt.Errorf("%w: cluster config is nil", errRefusingToCreateToken)
