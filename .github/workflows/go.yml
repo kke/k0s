@@ -240,7 +240,8 @@ jobs:
       fail-fast: false
       matrix:
         # smoke-suite: ${{ fromJson(needs.build.outputs.smoke-test-matrix) }}
-        smoke-suite: check-basic
+        smoke-suite: 
+          - check-basic
 
     steps:
       - name: Check out code into the Go module directory
