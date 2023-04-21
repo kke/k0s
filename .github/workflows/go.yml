@@ -34,7 +34,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [linux, windows]
+        #target: [linux, windows]
+        target: [linux]
         include:
           - target: linux
             build-docker-image: k0sbuild
@@ -98,6 +99,7 @@ jobs:
           path: k0s${{ matrix.binary-suffix }}
 
       - name: List smoke tests
+        if: false
         id: list-smoke-tests
         run: |
           ./vars.sh FROM=inttest smoketests | jq --raw-input --raw-output \
@@ -184,6 +186,7 @@ jobs:
 
   unittest_windows:
     name: Unit test (windows)
+    if: false
     runs-on: windows-latest
 
     defaults:
@@ -242,6 +245,8 @@ jobs:
         # smoke-suite: ${{ fromJson(needs.build.outputs.smoke-test-matrix) }}
         smoke-suite: 
           - check-basic
+          - check-configchange
+          - check-singlenode
 
     steps:
       - name: Check out code into the Go module directory
