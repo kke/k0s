@@ -319,7 +319,11 @@ func (s *ClusterSpec) Validate() (errs []error) {
 		"extensions":        s.Extensions,
 		"konnectivity":      s.Konnectivity,
 	} {
+		if field == nil {
+			continue
+		}
 		for _, err := range field.Validate() {
+
 			errs = append(errs, fmt.Errorf("%s: %w", name, err))
 		}
 	}
