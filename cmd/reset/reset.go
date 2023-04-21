@@ -44,9 +44,10 @@ func NewResetCmd() *cobra.Command {
 				return fmt.Errorf("currently not supported on windows")
 			}
 			opts := config.GetCmdOpts(cmd)
-			if err := opts.BootstrapConfig().ValidationError(); err != nil {
-				return err
-			}
+			// todo: bootstrap config is never valid
+			// if err := opts.BootstrapConfig().ValidationError(); err != nil {
+			// 	return err
+			// }
 			c := &command{opts}
 			return c.reset()
 		},

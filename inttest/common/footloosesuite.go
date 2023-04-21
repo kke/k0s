@@ -1247,7 +1247,7 @@ func (s *FootlooseSuite) initializeFootlooseClusterInDir(dir string) error {
 		return fmt.Errorf("failed to marshal footloose configuration: %w", err)
 	}
 
-	if err = os.WriteFile(path.Join(dir, "footloose.yaml"), footlooseYaml, 0700); err != nil {
+	if err = os.WriteFile(path.Join(dir, "footloose.yaml"), footlooseYaml, 0640); err != nil {
 		return fmt.Errorf("failed to write footloose configuration to file: %w", err)
 	}
 
