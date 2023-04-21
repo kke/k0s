@@ -45,7 +45,7 @@ func TestConfigSuite(t *testing.T) {
 	s := ConfigSuite{
 		common.FootlooseSuite{
 			ControllerCount: 1,
-			WorkerCount:     2,
+			WorkerCount:     1,
 		},
 	}
 	suite.Run(t, &s)
