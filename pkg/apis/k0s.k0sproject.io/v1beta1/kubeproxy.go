@@ -97,6 +97,11 @@ func DefaultKubeProxyIPVS() *KubeProxyIPVSConfiguration {
 
 // Validate validates kube proxy config
 func (k *KubeProxy) Validate() []error {
+	if k == nil {
+		// todo: or err?
+		return nil
+	}
+
 	if k.Disabled {
 		return nil
 	}
