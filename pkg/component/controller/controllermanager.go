@@ -93,7 +93,7 @@ func (a *Manager) Reconcile(_ context.Context, clusterConfig *v1beta1.ClusterCon
 		return nil
 	}
 
-	if clusterConfig.Spec.ControllerManager != nil {
+	if clusterConfig.Spec.ControllerManager == nil {
 		logger.Info("clusterconfig does not define ControllerManager, skipping reconcile")
 		return nil
 	}
