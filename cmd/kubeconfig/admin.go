@@ -18,11 +18,13 @@ package kubeconfig
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/k0sproject/k0s/pkg/component/status"
 	"github.com/k0sproject/k0s/pkg/config"
 
 	"github.com/spf13/cobra"
@@ -39,10 +41,6 @@ func kubeConfigAdminCmd() *cobra.Command {
 	$ kubectl get nodes`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			c := config.GetCmdOpts(cmd)
-			content, err := os.ReadFile(c.K0sVars.AdminKubeConfigPath)
-			if err != nil {
-				return fmt.Errorf("failed to read admin config, check if the control plane is initialized on this node: %w", err)
-			}
 
 			ctx := cmd.Context()
 			if !waitRunning {
@@ -51,12 +49,24 @@ func kubeConfigAdminCmd() *cobra.Command {
 				ctx = newCtx
 			}
 
-			cfg, err := c.RuntimeConfig(ctx)
+			statusInfo, err := status.GetStatusInfo(ctx, c.StatusSocket)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to get k0s status: %w", err)
+			}
+			if statusInfo == nil {
+				return errors.New("failed to get k0s status: status info is nil")
+			}
+
+			cfg := statusInfo.BootstrapConfig
+			c.K0sVars = statusInfo.K0sVars
+
+			content, err := os.ReadFile(c.K0sVars.AdminKubeConfigPath)
+			if err != nil {
+				return fmt.Errorf("failed to read admin config, check if the control plane is initialized on this node: %w", err)
 			}
 
 			clusterAPIURL := cfg.Spec.API.APIAddressURL()
+
 			newContent := strings.ReplaceAll(string(content), "https://localhost:6443", clusterAPIURL)
 			_, err = cmd.OutOrStdout().Write([]byte(newContent))
 			return err
