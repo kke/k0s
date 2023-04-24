@@ -227,12 +227,12 @@ func (s *BasicSuite) verifyCoreDNSAntiAffinity(kc *kubernetes.Clientset) {
 				return false, nil
 			}
 
+			s.T().Logf("Pod %s scheduled on %s", pod.ObjectMeta.Name, pod.Spec.NodeName)
+
 			uid := pod.GetUID()
 			if prevUID, ok := pods[nodeName]; ok && uid != prevUID {
 				return false, errors.New("multiple CoreDNS pods scheduled on the same node")
 			}
-
-			s.T().Logf("Pod %s scheduled on %s", pod.ObjectMeta.Name, pod.Spec.NodeName)
 
 			pods[nodeName] = pod.GetUID()
 			return len(pods) > 1, nil
