@@ -39,13 +39,17 @@ func NewResetCmd() *cobra.Command {
 			if runtime.GOOS == "windows" {
 				return fmt.Errorf("currently not supported on windows")
 			}
-			c := command(config.GetCmdOpts())
+			opts, err := config.GetCmdOpts(cmd)
+			if err != nil {
+				return err
+			}
+			c := (*command)(opts)
 			return c.reset()
 		},
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			c := command(config.GetCmdOpts())
-			return config.PreRunValidateConfig(c.K0sVars)
-		},
+		//PreRunE: func(cmd *cobra.Command, args []string) error {
+		//	c := command(config.GetCmdOpts())
+		//	return config.PreRunValidateConfig(c.K0sVars)
+		//},
 	}
 	cmd.SilenceUsage = true
 	cmd.PersistentFlags().AddFlagSet(config.GetPersistentFlagSet())
@@ -59,7 +63,7 @@ func (c *command) reset() error {
 		logrus.Fatal("this command must be run as root!")
 	}
 
-	k0sStatus, _ := status.GetStatusInfo(config.StatusSocket)
+	k0sStatus, _ := status.GetStatusInfo(c.K0sVars.StatusSocketPath)
 	if k0sStatus != nil && k0sStatus.Pid != 0 {
 		logrus.Fatal("k0s seems to be running! please stop k0s before reset.")
 	}

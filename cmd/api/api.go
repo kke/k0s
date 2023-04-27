@@ -47,7 +47,7 @@ import (
 )
 
 type command struct {
-	config.CLIOptions
+	*config.CLIOptions
 	client kubernetes.Interface
 }
 
@@ -71,7 +71,11 @@ func NewAPICmd() *cobra.Command {
 			return config.CallParentPersistentPreRun(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return (&command{CLIOptions: config.GetCmdOpts()}).start()
+			opts, err := config.GetCmdOpts(cmd)
+			if err != nil {
+				return err
+			}
+			return (&command{CLIOptions: opts}).start()
 		},
 	}
 	cmd.SilenceUsage = true
@@ -88,7 +92,11 @@ func (c *command) start() (err error) {
 
 	prefix := "/v1beta1"
 	mux := http.NewServeMux()
-	storage := c.NodeConfig.Spec.Storage
+	nodeConfig, err := c.K0sVars.NodeConfig()
+	if err != nil {
+		return err
+	}
+	storage := nodeConfig.Spec.Storage
 
 	if storage.Type == v1beta1.EtcdStorageType && !storage.Etcd.IsExternalClusterUsed() {
 		// Only mount the etcd handler if we're running on internal etcd storage
@@ -106,7 +114,7 @@ func (c *command) start() (err error) {
 
 	srv := &http.Server{
 		Handler: mux,
-		Addr:    fmt.Sprintf(":%d", c.NodeConfig.Spec.API.K0sAPIPort),
+		Addr:    fmt.Sprintf(":%d", nodeConfig.Spec.API.K0sAPIPort),
 		TLSConfig: &tls.Config{
 			MinVersion:   tls.VersionTLS12,
 			CipherSuites: constant.AllowedTLS12CipherSuiteIDs,
@@ -217,6 +225,11 @@ users:
 			sendError(fmt.Errorf("no calico-node-token secret found"), resp)
 			return
 		}
+		nodeConfig, err := c.K0sVars.NodeConfig()
+		if err != nil {
+			sendError(fmt.Errorf("can't obtain nodeconfig: %w", err), resp)
+			return
+		}
 
 		tw := templatewriter.TemplateWriter{
 			Name:     "kube-config",
@@ -227,7 +240,7 @@ users:
 				Token     string
 				Namespace string
 			}{
-				Server:    c.NodeConfig.Spec.API.APIAddressURL(),
+				Server:    nodeConfig.Spec.API.APIAddressURL(),
 				Ca:        base64.StdEncoding.EncodeToString(secretWithToken.Data["ca.crt"]),
 				Token:     string(secretWithToken.Data["token"]),
 				Namespace: string(secretWithToken.Data["namespace"]),

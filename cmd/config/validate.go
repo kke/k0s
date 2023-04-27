@@ -17,7 +17,13 @@ limitations under the License.
 package config
 
 import (
+	"fmt"
+	"io"
+	"os"
+
+	"github.com/k0sproject/k0s/pkg/apis/k0s/v1beta1"
 	"github.com/k0sproject/k0s/pkg/config"
+	"go.uber.org/multierr"
 
 	"github.com/spf13/cobra"
 )
@@ -29,11 +35,38 @@ func NewValidateCmd() *cobra.Command {
 		Long: `Example:
    k0s config validate --config path_to_config.yaml`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := config.GetCmdOpts()
+			var reader io.Reader
 
-			loadingRules := config.ClientConfigLoadingRules{K0sVars: c.K0sVars}
-			_, err := loadingRules.ParseRuntimeConfig()
-			return err
+			cfgFile, err := cmd.Flags().GetString("config")
+			if err != nil {
+				return fmt.Errorf("%w: --config is required", err)
+			}
+
+			switch cfgFile {
+			case "-":
+				reader = os.Stdin
+			case "":
+				return fmt.Errorf("--config is required")
+			default:
+				f, err := os.Open(cfgFile)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				reader = f
+			}
+
+			cfg, err := v1beta1.ConfigFromReader(reader)
+			if err != nil {
+				return err
+			}
+
+			errs := cfg.Validate()
+			if len(errs) > 0 {
+				return fmt.Errorf("config validation failed: %v", multierr.Combine(errs...))
+			}
+
+			return nil
 		},
 		SilenceUsage:  true,
 		SilenceErrors: true,

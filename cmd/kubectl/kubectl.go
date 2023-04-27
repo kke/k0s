@@ -169,6 +169,10 @@ func handleKubectlPlugins(kubectlCmd *cobra.Command) {
 }
 
 func fallbackToK0sKubeconfig(cmd *cobra.Command) error {
+	opts, err := config.GetCmdOpts(cmd)
+	if err != nil {
+		return err
+	}
 	kubeconfigFlag := cmd.Flags().Lookup("kubeconfig")
 	if kubeconfigFlag == nil {
 		return fmt.Errorf("kubeconfig flag not found")
@@ -184,7 +188,7 @@ func fallbackToK0sKubeconfig(cmd *cobra.Command) error {
 		return nil
 	}
 
-	kubeconfig := config.GetCmdOpts().K0sVars.AdminKubeConfigPath
+	kubeconfig := opts.K0sVars.AdminKubeConfigPath
 
 	// verify that k0s's kubeconfig is readable before pushing it to the env
 	if _, err := os.Stat(kubeconfig); err != nil {

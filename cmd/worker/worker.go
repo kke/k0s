@@ -62,7 +62,12 @@ func NewWorkerCmd() *cobra.Command {
 			return config.CallParentPersistentPreRun(cmd, args)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			c := Command(config.GetCmdOpts())
+			opts, err := config.GetCmdOpts(cmd)
+			if err != nil {
+				return err
+			}
+
+			c := (*Command)(opts)
 			if len(args) > 0 {
 				c.TokenArg = args[0]
 			}
@@ -185,12 +190,9 @@ func (c *Command) Start(ctx context.Context) error {
 	}
 
 	certManager := worker.NewCertificateManager(ctx, kubeletKubeconfigPath)
-	if !c.SingleNode && !c.EnableWorker {
-		clusterConfig, err := config.LoadClusterConfig(c.K0sVars)
-		if err != nil {
-			return fmt.Errorf("failed to load cluster config: %w", err)
-		}
 
+	// if running inside a controller, status component is already running
+	if !c.SingleNode && !c.EnableWorker {
 		componentManager.Add(ctx, &status.Status{
 			Prober: prober.DefaultProber,
 			StatusInformation: status.K0sStatus{
@@ -201,10 +203,10 @@ func (c *Command) Start(ctx context.Context) error {
 				Workloads:     true,
 				SingleNode:    false,
 				K0sVars:       c.K0sVars,
-				ClusterConfig: clusterConfig,
+				ClusterConfig: nil,
 			},
 			CertManager: certManager,
-			Socket:      config.StatusSocket,
+			Socket:      c.K0sVars.StatusSocketPath,
 		})
 	}
 

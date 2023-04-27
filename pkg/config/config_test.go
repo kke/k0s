@@ -16,6 +16,15 @@ limitations under the License.
 
 package config
 
+import "testing"
+
+func TestGetConfigFromFile(t *testing.T) {
+	t.Fatal("not implemented")
+}
+
+/*
+todo: reimplement/cleanup/whatever
+
 import (
 	"context"
 	"fmt"
@@ -48,7 +57,7 @@ spec:
     serviceCIDR: 12.12.12.12/12
     podCIDR: 13.13.13.13/13
     kubeProxy:
-      mode: ipvs	
+      mode: ipvs
 `
 	apiYaml = `
 apiVersion: k0s.k0sproject.io/v1beta1
@@ -373,3 +382,4 @@ func createFakeAPIConfig(t *testing.T, client k0sv1beta1.K0sV1beta1Interface) {
 	_, err = clusterConfigs.Create(context.TODO(), config.GetClusterWideConfig().StripDefaults(), cOpts)
 	require.NoError(t, err)
 }
+*/

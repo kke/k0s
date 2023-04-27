@@ -48,6 +48,9 @@ func GetAll(base string) ([]string, error) {
 
 // Init creates a path if it does not exist, and verifies its permissions, if it does
 func Init(path string, perm os.FileMode) error {
+	if path == "" {
+		return fmt.Errorf("init dir: path cannot be empty")
+	}
 	// if directory doesn't exist, this will create it
 	if err := os.MkdirAll(path, perm); err != nil {
 		return err

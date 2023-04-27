@@ -19,8 +19,6 @@ limitations under the License.
 
 package constant
 
-import "fmt"
-
 const (
 	// DataDirDefault is the default data directory containing k0s state
 	DataDirDefault                 = "/var/lib/k0s"
@@ -29,8 +27,5 @@ const (
 	KubePauseContainerImage        = "registry.k8s.io/pause"
 	KubePauseContainerImageVersion = "3.8"
 	K0sConfigPathDefault           = "/etc/k0s/k0s.yaml"
+	RuntimeConfigPathDefault       = "/run/k0s/k0s.yaml"
 )
-
-func formatPath(dir string, file string) string {
-	return fmt.Sprintf("%s/%s", dir, file)
-}

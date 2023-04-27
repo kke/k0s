@@ -28,11 +28,11 @@ import (
 	k0sv1beta1 "github.com/k0sproject/k0s/pkg/client/clientset/typed/k0s/v1beta1"
 	"github.com/k0sproject/k0s/pkg/config"
 	"github.com/k0sproject/k0s/pkg/constant"
+	"github.com/k0sproject/k0s/pkg/kubernetes"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/require"
-	"sigs.k8s.io/yaml"
 )
 
 var resourceType = metav1.TypeMeta{APIVersion: "k0s.k0sproject.io/v1beta1", Kind: "clusterconfigs"}
@@ -42,11 +42,11 @@ type ConfigGetter struct {
 	YamlData   string
 
 	t       *testing.T
-	k0sVars constant.CfgVars
+	k0sVars *config.CfgVars
 }
 
 // NewConfigGetter sets the parameters required to fetch a fake config for testing
-func NewConfigGetter(t *testing.T, yamlData string, isNodeConfig bool, k0sVars constant.CfgVars) *ConfigGetter {
+func NewConfigGetter(t *testing.T, yamlData string, isNodeConfig bool, k0sVars *config.CfgVars) *ConfigGetter {
 	return &ConfigGetter{
 		YamlData:   yamlData,
 		NodeConfig: isNodeConfig,
@@ -57,15 +57,12 @@ func NewConfigGetter(t *testing.T, yamlData string, isNodeConfig bool, k0sVars c
 
 // FakeRuntimeConfig takes a yaml construct and returns a config object from a fake runtime config path
 func (c *ConfigGetter) FakeConfigFromFile() *v1beta1.ClusterConfig {
-	loadingRules := config.ClientConfigLoadingRules{
-		RuntimeConfigPath: c.initRuntimeConfig(),
-		Nodeconfig:        c.NodeConfig,
-		K0sVars:           c.k0sVars,
-	}
+	cfgPath := c.initRuntimeConfig()
+	rtc, err := config.LoadRuntimeConfig(c.k0sVars)
+	require.NoError(c.t, err, "failed to create fake runtime config")
+	defer require.NoError(c.t, os.Remove(cfgPath))
 
-	cfg, err := loadingRules.Load()
-	require.NoError(c.t, err, "failed to load fake config from file")
-	return cfg
+	return rtc.NodeConfig
 }
 
 func (c *ConfigGetter) FakeAPIConfig() *v1beta1.ClusterConfig {
@@ -74,30 +71,26 @@ func (c *ConfigGetter) FakeAPIConfig() *v1beta1.ClusterConfig {
 
 	c.createFakeAPIConfig(client.K0sV1beta1())
 
-	loadingRules := config.ClientConfigLoadingRules{
-		RuntimeConfigPath: path.Join(c.t.TempDir(), "nonexistent-k0s.yaml"),
-		Nodeconfig:        c.NodeConfig,
-		APIClient:         client.K0sV1beta1(),
-		K0sVars:           c.k0sVars,
-	}
+	adminClientFactory := kubernetes.NewAdminClientFactory(c.k0sVars.AdminKubeConfigPath)
 
-	cfg, err := loadingRules.Load()
+	ctx, cancel := context.WithTimeout(context.TODO(), time.Duration(10)*time.Second)
+	defer cancel()
+
+	cfg, err := c.k0sVars.ClusterConfig(ctx, adminClientFactory)
 	require.NoError(c.t, err, "failed to load cluster config")
 	return cfg
 }
 
 func (c *ConfigGetter) initRuntimeConfig() string {
+	vars := c.k0sVars.DeepCopy()
 	cfg, err := v1beta1.ConfigFromString(c.YamlData, c.getStorageSpec())
 	require.NoError(c.t, err, "failed to parse config")
+	vars.SetNodeConfig(cfg)
+	vars.RuntimeConfigPath = path.Join(c.t.TempDir(), "fake-k0s-runtime.yaml")
+	_, err = config.NewRuntimeConfig(vars)
+	require.NoError(c.t, err, "failed to create fake runtime config")
 
-	data, err := yaml.Marshal(&cfg)
-	require.NoError(c.t, err, "failed to marshal config")
-
-	fakeConfigPath := path.Join(c.t.TempDir(), "fake-k0s.yaml")
-	err = os.WriteFile(fakeConfigPath, data, 0644)
-	require.NoError(c.t, err, "failed to write runtime config to %q", fakeConfigPath)
-
-	return fakeConfigPath
+	return vars.RuntimeConfigPath
 }
 
 func (c *ConfigGetter) createFakeAPIConfig(client k0sv1beta1.K0sV1beta1Interface) {
@@ -108,7 +101,7 @@ func (c *ConfigGetter) createFakeAPIConfig(client k0sv1beta1.K0sV1beta1Interface
 	ctxWithTimeout, cancelFunction := context.WithTimeout(context.TODO(), time.Duration(10)*time.Second)
 	defer cancelFunction()
 
-	_, err = clusterConfigs.Create(ctxWithTimeout, cfg.GetClusterWideConfig().StripDefaults(), metav1.CreateOptions{TypeMeta: resourceType})
+	_, err = clusterConfigs.Create(ctxWithTimeout, cfg.GetClusterWideConfig().CRValidator().StripDefaults(), metav1.CreateOptions{TypeMeta: resourceType})
 	require.NoError(c.t, err, "failed to create clusterConfig in the API")
 }
 
